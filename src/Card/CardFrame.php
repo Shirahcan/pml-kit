@@ -20,6 +20,12 @@ final class CardFrame
     public const SAFE_MARGIN = 60;
 
     /**
+     * What `PmlCard` marks once its fonts and pictures have loaded, mirroring `CARD_READY_SELECTOR` in
+     * @shirahcan/pml: the snapshot waits for it, so a card is never drawn half-loaded.
+     */
+    public const READY_SELECTOR = '[data-card-ready="true"]';
+
+    /**
      * The card's type scale, mirroring `CARD_TYPE_SCALE` in @shirahcan/pml: page type sizes times 1.8, so a card
      * still reads when a feed shrinks it to about 500 px wide.
      */
@@ -35,7 +41,8 @@ final class CardFrame
     public const BODY_PX = ['sm' => 14, 'md' => 16, 'lg' => 18];
 
     /**
-     * Mirrors `CARD_ELEMENTS` in @shirahcan/pml (CardFrameParityTest keeps them equal). A picture, words and a few
+     * Mirrors `CARD_ELEMENTS` in @shirahcan/pml (Portify's CardFrameParityTest, phase E4d, keeps them equal; the
+     * two packages cannot read each other). A picture, words and a few
      * marks; `credentials` is the host's pinned identity line. No forms, embeds, scripts, grids or effects.
      */
     public const ELEMENTS = [
