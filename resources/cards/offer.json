@@ -1,0 +1,19 @@
+{
+  "name": "offer",
+  "use_when": "The facts carry a price (a service or package): the price is a fact from the record, shown beside the title.",
+  "nodes": [
+    {
+      "primitive": "box",
+      "props": { "direction": "column", "gap": "md" },
+      "style": { "width": "full", "background": "surface", "padding": "spacious", "padding_x": "spacious", "min_height": "lg", "justify": "center" },
+      "children": [
+        { "primitive": "image", "props": { "src": "{{logo}}", "alt": "", "size": "xs" }, "card": { "requires": "logo" } },
+        { "primitive": "text", "props": { "value": "{{kicker}}" }, "style": { "text_color": "accent", "font_weight": "semibold" }, "card": { "requires": "kicker", "max": 60 } },
+        { "primitive": "heading", "props": { "text": "{{title}}", "level": 1 }, "style": { "heading_size": "xl", "line_height": "tight" }, "card": { "max": 80 } },
+        { "primitive": "text", "props": { "value": "{{price}}" }, "style": { "body_size": "lg", "font_weight": "bold", "text_color": "accent" }, "card": { "requires": "price", "max": 40 } },
+        { "primitive": "text", "props": { "value": "{{subtitle}}" }, "style": { "body_size": "md", "text_color": "muted" }, "card": { "requires": "subtitle", "max": 120 } },
+        { "primitive": "credentials", "props": { "heading": "" }, "card": { "when": "pin_identity" } }
+      ]
+    }
+  ]
+}
