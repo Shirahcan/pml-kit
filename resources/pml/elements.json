@@ -1,0 +1,473 @@
+{
+    "version": 1,
+    "component_prose": ["subhead", "headline", "body", "description", "note", "address"],
+    "enums": {
+        "level": ["1", "2", "3", "4"],
+        "variant": ["primary", "outline", "link", "soft", "ghost"],
+        "columns": ["1", "2", "3", "4", "6", "12"],
+        "gap": ["none", "xs", "sm", "md", "lg", "xl"],
+        "size": ["xs", "sm", "md", "lg"],
+        "direction": ["row", "column"],
+        "provider": ["youtube", "vimeo"],
+        "type": ["bullet", "numbered", "check", "icon"],
+        "layout": ["grid", "stack"],
+        "shape": ["blob", "circle", "ring", "dots", "grid", "image"],
+        "position": ["top-left", "top-right", "bottom-left", "bottom-right", "center"],
+        "color": ["accent", "muted", "surface"],
+        "fit": ["cover", "contain"],
+        "ratio": ["auto", "square", "4:3", "3:2", "16:9", "3:4"],
+        "slides": ["1", "2", "3", "4"],
+        "auto": ["scroll", "step"],
+        "focal": ["center", "top", "bottom", "left", "right"],
+        "as": ["div", "section", "article", "aside", "main", "figure", "address", "blockquote"],
+        "tone": ["info", "tip", "warning", "success"],
+        "depth": ["2", "3"],
+        "icon": ["check-circle", "star", "heart", "globe", "briefcase", "clock", "file-text", "users", "award", "message-circle", "map-pin", "phone", "clipboard-check", "send"],
+        "field_kind": ["text", "email", "tel", "textarea", "select", "checkbox", "number", "date"],
+        "form_layout": ["stacked", "inline", "prompt"],
+        "code_language": ["plaintext", "json", "bash", "html", "css", "javascript", "typescript", "php", "python", "sql", "yaml", "xml", "markdown"]
+    },
+    "elements": {
+        "text": {
+            "container": false,
+            "props": {
+                "value": { "type": "prose" }
+            }
+        },
+        "p": {
+            "container": true,
+            "holds": "inline",
+            "props": {
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "rich_text": {
+            "container": false,
+            "props": {
+                "markdown": { "type": "prose" },
+                "doc": { "type": "doc", "compiled": true },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "span": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "strong": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "emphasis": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "small": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "mark": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "link": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {
+                "href": { "type": "url" }
+            }
+        },
+        "quote": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {
+                "cite": { "type": "url" }
+            }
+        },
+        "keyboard": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "sub": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "sup": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {}
+        },
+        "abbr": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {
+                "title": { "type": "prose" }
+            }
+        },
+        "time": {
+            "container": true,
+            "category": "inline",
+            "holds": "inline",
+            "props": {
+                "datetime": { "type": "string" }
+            }
+        },
+        "code": {
+            "container": false,
+            "category": "inline",
+            "props": {
+                "text": { "type": "prose" }
+            }
+        },
+        "br": {
+            "container": false,
+            "category": "inline",
+            "props": {}
+        },
+        "heading": {
+            "container": false,
+            "props": {
+                "text": { "type": "prose" },
+                "level": { "type": "enum", "values": "@level", "number": true },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "image": {
+            "container": false,
+            "props": {
+                "src": { "type": "url" },
+                "alt": { "type": "string" },
+                "caption": { "type": "prose" },
+                "fit": { "type": "enum", "values": "@fit" },
+                "ratio": { "type": "enum", "values": "@ratio" },
+                "focal": { "type": "enum", "values": "@focal" },
+                "size": { "type": "enum", "values": "@size" }
+            }
+        },
+        "icon": {
+            "container": false,
+            "props": {
+                "name": { "type": "enum", "values": "@icon" }
+            }
+        },
+        "button": {
+            "container": false,
+            "props": {
+                "label": { "type": "prose" },
+                "href": { "type": "url" },
+                "variant": { "type": "enum", "values": "@variant" }
+            }
+        },
+        "video": {
+            "container": false,
+            "props": {
+                "provider": { "type": "enum", "values": "@provider" },
+                "id": { "type": "pattern", "pattern": "video_id" },
+                "title": { "type": "prose" }
+            }
+        },
+        "box": {
+            "container": true,
+            "props": {
+                "gap": { "type": "enum", "values": "@gap" },
+                "direction": { "type": "enum", "values": "@direction" },
+                "as": { "type": "enum", "values": "@as" },
+                "anchor": { "type": "anchor" },
+                "ratio": { "type": "enum", "values": "@ratio" },
+                "slides": { "type": "enum", "values": "@slides", "number": true },
+                "auto": { "type": "enum", "values": "@auto" }
+            }
+        },
+        "grid": {
+            "container": true,
+            "props": {
+                "columns": { "type": "enum", "values": "@columns", "number": true },
+                "gap": { "type": "enum", "values": "@gap" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "field": {
+            "container": false,
+            "props": {
+                "name": { "type": "string" },
+                "label": { "type": "prose" },
+                "kind": { "type": "enum", "values": "@field_kind" },
+                "placeholder": { "type": "prose" },
+                "required": { "type": "bool" },
+                "options": { "type": "prose" }
+            }
+        },
+        "form": {
+            "container": true,
+            "children": ["field", "box", "grid", "heading", "text", "rich_text", "p"],
+            "props": {
+                "key": { "type": "pattern", "pattern": "form_key" },
+                "title": { "type": "prose" },
+                "intro": { "type": "prose" },
+                "submit_label": { "type": "prose" },
+                "success_message": { "type": "prose" },
+                "consent_notice": { "type": "prose" },
+                "notify_email": { "type": "email" },
+                "layout": { "type": "enum", "values": "@form_layout" }
+            }
+        },
+        "spacer": {
+            "container": false,
+            "props": {
+                "size": { "type": "enum", "values": "@size" }
+            }
+        },
+        "divider": {
+            "container": false,
+            "props": {
+                "size": { "type": "enum", "values": "@size" }
+            }
+        },
+        "packages": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" },
+                "intro": { "type": "prose" }
+            }
+        },
+        "credentials": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" }
+            }
+        },
+        "porter_intake": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" },
+                "intro": { "type": "prose" },
+                "opening_line": { "type": "prose" }
+            }
+        },
+        "contact_form": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" },
+                "intro": { "type": "prose" },
+                "consent_notice": { "type": "prose" }
+            }
+        },
+        "testimonials": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" },
+                "intro": { "type": "prose" },
+                "layout": { "type": "enum", "values": "@layout" }
+            }
+        },
+        "growth_form": {
+            "container": false,
+            "props": {}
+        },
+        "list": {
+            "container": true,
+            "props": {
+                "heading": { "type": "prose" },
+                "type": { "type": "enum", "values": "@type" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "list_item": {
+            "container": false,
+            "props": {
+                "icon": { "type": "enum", "values": "@icon" },
+                "title": { "type": "prose" },
+                "text": { "type": "prose" }
+            }
+        },
+        "table": {
+            "container": true,
+            "children": ["row"],
+            "props": {
+                "caption": { "type": "prose" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "row": {
+            "container": true,
+            "children": ["cell"],
+            "parent": ["table"],
+            "props": {}
+        },
+        "cell": {
+            "container": true,
+            "children": ["text", "p", "rich_text", "heading", "image", "icon", "button", "list", "box", "grid"],
+            "parent": ["row"],
+            "props": {
+                "header": { "type": "bool" }
+            }
+        },
+        "script": {
+            "container": false,
+            "props": {
+                "source": { "type": "string" },
+                "program": { "type": "program" }
+            }
+        },
+        "header": {
+            "container": true,
+            "props": {
+                "gap": { "type": "enum", "values": "@gap" },
+                "direction": { "type": "enum", "values": "@direction" }
+            }
+        },
+        "nav": {
+            "container": true,
+            "props": {
+                "gap": { "type": "enum", "values": "@gap" },
+                "direction": { "type": "enum", "values": "@direction" }
+            }
+        },
+        "footer": {
+            "container": true,
+            "props": {
+                "gap": { "type": "enum", "values": "@gap" },
+                "direction": { "type": "enum", "values": "@direction" }
+            }
+        },
+        "callout": {
+            "container": true,
+            "children": ["text", "rich_text", "p", "pre", "blockquote", "definitions", "heading", "list", "button", "image", "icon", "box", "grid"],
+            "props": {
+                "tone": { "type": "enum", "values": "@tone" },
+                "title": { "type": "prose" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "toc": {
+            "container": false,
+            "props": {
+                "title": { "type": "prose" },
+                "depth": { "type": "enum", "values": "@depth", "number": true }
+            }
+        },
+        "sources": {
+            "container": true,
+            "children": ["source"],
+            "props": {
+                "title": { "type": "prose" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "source": {
+            "container": false,
+            "parent": ["sources"],
+            "props": {
+                "title": { "type": "prose" },
+                "publisher": { "type": "prose" },
+                "href": { "type": "url" },
+                "date": { "type": "date" }
+            }
+        },
+        "faq": {
+            "container": true,
+            "children": ["faq_item"],
+            "props": {
+                "heading": { "type": "prose" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "faq_item": {
+            "container": true,
+            "children": ["text", "rich_text", "p", "pre", "definitions", "list", "button", "image"],
+            "parent": ["faq"],
+            "props": {
+                "question": { "type": "prose" }
+            }
+        },
+        "layer": {
+            "container": false,
+            "parent": ["box", "header", "footer"],
+            "props": {
+                "shape": { "type": "enum", "values": "@shape" },
+                "src": { "type": "url" },
+                "position": { "type": "enum", "values": "@position" },
+                "size": { "type": "enum", "values": "@size" },
+                "color": { "type": "enum", "values": "@color" }
+            }
+        },
+        "pre": {
+            "container": false,
+            "props": {
+                "text": { "type": "prose" },
+                "language": { "type": "enum", "values": "@code_language" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "blockquote": {
+            "container": true,
+            "children": ["text", "p", "rich_text", "list", "heading"],
+            "props": {
+                "cite": { "type": "url" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "details": {
+            "container": true,
+            "props": {
+                "open": { "type": "bool" },
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "summary": {
+            "container": true,
+            "holds": "inline",
+            "parent": ["details"],
+            "props": {}
+        },
+        "definitions": {
+            "container": true,
+            "children": ["term", "definition"],
+            "props": {
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "term": {
+            "container": true,
+            "holds": "inline",
+            "parent": ["definitions"],
+            "props": {}
+        },
+        "definition": {
+            "container": true,
+            "children": ["text", "p", "rich_text", "list"],
+            "parent": ["definitions"],
+            "props": {}
+        },
+        "figure": {
+            "container": true,
+            "children": ["image", "video", "pre", "blockquote", "table", "box", "grid", "icon", "caption"],
+            "props": {
+                "anchor": { "type": "anchor" }
+            }
+        },
+        "caption": {
+            "container": true,
+            "holds": "inline",
+            "parent": ["figure"],
+            "props": {}
+        }
+    }
+}

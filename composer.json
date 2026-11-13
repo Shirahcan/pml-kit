@@ -1,0 +1,24 @@
+{
+    "name": "shirahcan/pml",
+    "description": "PML and PSL, the server side of the page language shared by every Shirahcan product (parse, serialise, schema, PSL analysis, rich text, element definitions).",
+    "type": "library",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Shirahcan\\Pml\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Shirahcan\\Pml\\Tests\\": "tests/"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
