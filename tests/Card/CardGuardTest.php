@@ -74,6 +74,34 @@ class CardGuardTest extends TestCase
         $this->assertContains('credentials', $this->primitives($out['nodes']), 'the fallback keeps the pinned identity');
     }
 
+    public function test_an_automatic_card_whose_own_facts_are_refused_is_refused(): void
+    {
+        $out = (new CardGuard())->guard(null, new CardFacts('Visa approval guaranteed'), $this->strict());
+
+        $this->assertTrue($out['refused']);
+        $this->assertFalse($out['fell_back']);
+        $this->assertStringContainsString('not allowed', (string) $out['reason']);
+    }
+
+    public function test_a_refused_design_whose_fallback_is_refused_too_is_refused(): void
+    {
+        $designed = [['primitive' => 'heading', 'props' => ['text' => 'Guaranteed', 'level' => 1]]];
+        $out = (new CardGuard())->guard($designed, new CardFacts('Approval guaranteed'), $this->strict());
+
+        $this->assertTrue($out['fell_back']);
+        $this->assertTrue($out['refused']);
+    }
+
+    public function test_a_refused_design_with_a_clean_fallback_is_not_refused(): void
+    {
+        $designed = [['primitive' => 'heading', 'props' => ['text' => 'Guaranteed', 'level' => 1]]];
+        $out = (new CardGuard())->guard($designed, new CardFacts('Spousal sponsorship'), $this->strict());
+
+        $this->assertTrue($out['fell_back']);
+        $this->assertFalse($out['refused']);
+        $this->assertNotNull($out['reason'], 'the person still learns why their design was replaced');
+    }
+
     public function test_what_a_card_cannot_hold_is_dropped_and_named(): void
     {
         $designed = [['primitive' => 'heading', 'props' => ['text' => 'Hi', 'level' => 1]], ['primitive' => 'form', 'props' => []]];

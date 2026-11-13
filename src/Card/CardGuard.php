@@ -15,7 +15,9 @@ final class CardGuard
 
     /**
      * @param  list<array<string, mixed>>  $nodes  the person's card, or null for the automatic card
-     * @return array{nodes: list<array<string, mixed>>, dropped: list<string>, restored_identity: bool, fell_back: bool, reason: ?string, findings: list<array{code: string, at: string, text: string}>}
+     * `refused` = no card may be drawn (the automatic card's own words are refused too); `reason` says why.
+     *
+     * @return array{nodes: list<array<string, mixed>>, dropped: list<string>, restored_identity: bool, fell_back: bool, refused: bool, reason: ?string, findings: list<array{code: string, at: string, text: string}>}
      */
     public function guard(?array $nodes, CardFacts $facts, CardPolicy $policy): array
     {
@@ -36,10 +38,16 @@ final class CardGuard
 
         $reason = $policy->scan(CardChecks::allWords($nodes));
         $fellBack = false;
+        // The automatic card is made of the document's own facts, and those may carry refused words too (a search
+        // title nobody scanned). Then NO card may be drawn: `refused`, and the publisher draws nothing.
+        $refused = $reason !== null;
 
         if ($reason !== null && $designed) {
             $nodes = $this->composer->compose($facts);
             $fellBack = true;
+            $automaticReason = $policy->scan(CardChecks::allWords($nodes));
+            $refused = $automaticReason !== null;
+            $reason = $automaticReason ?? $reason;
         }
 
         return [
@@ -47,6 +55,7 @@ final class CardGuard
             'dropped' => $dropped,
             'restored_identity' => $restored,
             'fell_back' => $fellBack,
+            'refused' => $refused,
             'reason' => $reason,
             'findings' => CardChecks::findings($nodes),
         ];

@@ -18,7 +18,7 @@ A social card is an ordinary PML node list limited to the card subset (`CardFram
 | `DefaultCardComposer` | The automatic card: picks a starter (`resources/cards/{headline,photo,offer}.json`) from the facts. |
 | `CardChecks` | Findings for a designed card: text too small to read in a feed, too many blocks, too many words. |
 | `CardPolicy` / `DefaultCardPolicy` | The product's rules: pinned identity, the compliance scan, the byte budget, own pictures. |
-| `CardGuard` | Drops what a card cannot hold, restores a pinned identity line, falls back to the automatic card when the scan refuses words. |
-| `CardPublisher` | Guards, hashes, draws through the product's `CardRenderer` and stores through its `CardImageStore`. Unchanged = nothing drawn; a failed draw keeps the last good picture (`pending` when retryable, `failed` with the reason otherwise). `needsDrawing()` is a backfill's dry run. |
+| `CardGuard` | Drops what a card cannot hold, restores a pinned identity line, falls back to the automatic card when the scan refuses words, and reports `refused` when the automatic card's own words are refused too. |
+| `CardPublisher` | Guards, hashes, draws through the product's `CardRenderer` and stores through its `CardImageStore`. Unchanged = nothing drawn; a failed draw keeps the last good picture (`pending` when retryable, `failed` with the reason otherwise). Refused words are never drawn (`refused`: the product's metadata must stop using the old picture). `needsDrawing()` is a backfill's dry run. |
 
 The product owns the queued job (retries, `report()`), the backfill command, the signed card route the renderer opens, and the storage. Portify wraps the kit's `AiRender::snapshot()` as its `CardRenderer`.

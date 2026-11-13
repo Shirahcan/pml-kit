@@ -152,6 +152,29 @@ class CardPublisherTest extends TestCase
         $this->assertCount(1, $this->snapshots);
     }
 
+    public function test_refused_words_are_never_drawn_and_a_recorded_refusal_is_not_redone(): void
+    {
+        $refusing = new class implements CardPolicy
+        {
+            public function pinsIdentity(): bool { return false; }
+
+            public function scan(string $words): ?string { return str_contains($words, 'guaranteed') ? 'No promises of an outcome.' : null; }
+
+            public function maxBytes(): int { return 300_000; }
+
+            public function allowsOwnPicture(): bool { return true; }
+        };
+        $first = $this->publish(null, new CardFacts('Spring webinar'), $refusing);
+        $out = $this->publish($first['card'], new CardFacts('Approval guaranteed'), $refusing);
+
+        $this->assertSame('refused', $out['card']['status']);
+        $this->assertSame('No promises of an outcome.', $out['card']['error']);
+        $this->assertFalse($out['rendered']);
+        $this->assertCount(1, $this->snapshots, 'nothing is drawn for refused words');
+        $this->assertFalse($this->publisher()->needsDrawing($out['card'], null, new CardFacts('Approval guaranteed'), $refusing, 'theme-a'));
+        $this->assertTrue($this->publisher()->needsDrawing($out['card'], null, new CardFacts('Spring webinar'), $refusing, 'theme-a'));
+    }
+
     public function test_a_jpeg_is_stored_as_jpg(): void
     {
         $this->next = CardRender::drawn('JPGBYTES', 'jpeg');

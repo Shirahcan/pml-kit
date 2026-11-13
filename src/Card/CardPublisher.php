@@ -13,6 +13,8 @@ namespace Shirahcan\Pml\Card;
  *   renderer's version. Unchanged hash + a picture still in the store = nothing is drawn.
  * - A failed render never loses the last good card: `pending` (retryable) or `failed` (a setup or design fault)
  *   keeps the previous address, with the reason in `error`.
+ * - Refused words are never drawn: `refused` (the guard's reason in `error`). The product's metadata must stop using
+ *   the stored picture for a refused card, unlike `pending` and `failed`.
  *
  * The renderer reports a failure as a {@see CardRender}, never by throwing. A store that throws leaves the document's
  * card exactly as it was (nothing is returned to save), so the product's job simply retries.
@@ -29,6 +31,12 @@ final class CardPublisher
     public const STATUS_PENDING = 'pending';
 
     public const STATUS_FAILED = 'failed';
+
+    /**
+     * The product's rules refuse the card's words and the automatic card's too: nothing is drawn, and the product's
+     * metadata must NOT keep showing the old picture (it falls back to its own safe card) until the words change.
+     */
+    public const STATUS_REFUSED = 'refused';
 
     public function __construct(
         private readonly CardRenderer $renderer,
@@ -48,6 +56,10 @@ final class CardPublisher
         $guard = $this->guard->guard($designed, $facts, $policy);
         $hash = self::hash($guard['nodes'], $facts, $themeKey);
         $alt = $facts->alt ?? $facts->title;
+
+        if ($guard['refused']) {
+            return ['card' => self::kept($current, $hash, $alt, self::STATUS_REFUSED, $guard['reason']), 'guard' => $guard, 'rendered' => false];
+        }
 
         if ($this->isCurrent($current, $hash)) {
             return ['card' => self::kept($current, $hash, $alt, self::STATUS_RENDERED, null), 'guard' => $guard, 'rendered' => false];
@@ -89,8 +101,14 @@ final class CardPublisher
     public function needsDrawing(?array $current, ?array $designed, CardFacts $facts, CardPolicy $policy, string $themeKey): bool
     {
         $guard = $this->guard->guard($designed, $facts, $policy);
+        $hash = self::hash($guard['nodes'], $facts, $themeKey);
 
-        return ! $this->isCurrent($current, self::hash($guard['nodes'], $facts, $themeKey));
+        // A refusal already recorded for these exact words has nothing left to do until they change.
+        if ($guard['refused']) {
+            return ($current['hash'] ?? null) !== $hash || ($current['status'] ?? null) !== self::STATUS_REFUSED;
+        }
+
+        return ! $this->isCurrent($current, $hash);
     }
 
     /** @param  array<string, mixed>|null  $current */
