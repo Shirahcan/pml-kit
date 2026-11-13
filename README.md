@@ -6,6 +6,15 @@ The server side of PML and PSL, the page language every Shirahcan product shares
 - `Shirahcan\Pml\Psl\*`: PSL lexer, parser and analyzer (`resources/psl/stdlib/manifest.json`).
 - `Shirahcan\Pml\Blocks\*`: `BlockSchema`, the security boundary for author content.
 
+## Compile, snapshot, diagnose (0.8.0, 0.9.0)
+
+| Class | What it does |
+|---|---|
+| `PmlCompiler` | Expands components, validates every primitive, scans the visible words with a `Compliance\ComplianceRulePack`. |
+| `PmlSnapshotBuilder` | The publish/preview path: compile, bake the owner's module data (packages, credentials, testimonials), scan the RESOLVED page, and check the licensee identity when one is given. No model call: a product adds its own advisory (AI) pass by extending it. |
+| `PmlDiagnoseService` | The Code view's located problems (syntax, PSL, vocabulary, advice). Never throws. A product's own components reach it only as the `handle => expander` map it is handed. |
+| `PmlStreamPrefix` | The finished part of a page a model is still writing, as nodes, plus the element being written. The product splits its own reply format first and hands in the page part. |
+
 The browser side is `@shirahcan/pml` (repo `pml-ui`). A change to `elements.json` is exported to it with Portify's `php artisan pml:export-elements`, then both are tagged.
 
 ## Social cards (`Shirahcan\Pml\Card\*`)
