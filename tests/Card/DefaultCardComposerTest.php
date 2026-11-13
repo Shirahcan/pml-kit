@@ -67,6 +67,19 @@ class DefaultCardComposerTest extends TestCase
         $this->assertSame(['Moving to Halifax', 'A nurse\'s story'], $this->texts($nodes));
     }
 
+    public function test_a_photo_cards_words_take_the_overlays_light_text(): void
+    {
+        $nodes = $this->composer->compose(new CardFacts('Moving to Halifax', subtitle: 'A nurse\'s story', kicker: 'Stories', picture: 'https://p.test/halifax.jpg'));
+
+        $this->assertSame('dark', $nodes[0]['style']['background_overlay']);
+
+        // The renderer gives a dark overlay light text; a colour on a word (the accent's text colour is dark on a light
+        // accent) would put dark words on the dark overlay, which is what Loop 1 found on a real card.
+        foreach ($nodes[0]['children'] as $child) {
+            $this->assertArrayNotHasKey('text_color', $child['style'] ?? [], (string) ($child['primitive'] ?? ''));
+        }
+    }
+
     public function test_an_offer_card_shows_the_price_from_the_record(): void
     {
         $nodes = $this->composer->compose(new CardFacts('Study Visa Application', subtitle: '16 weeks', kicker: 'Study', price: 'From $2,500'));

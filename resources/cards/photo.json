@@ -1,6 +1,6 @@
 {
   "name": "photo",
-  "use_when": "The document has a main picture: it fills the card under a dark overlay, with the words over it.",
+  "use_when": "The document has a main picture: it fills the card under a dark overlay, with the words over it. The words take the overlay's light text (never the accent's text colour, which is dark on a light accent and unreadable on the overlay).",
   "nodes": [
     {
       "primitive": "box",
@@ -16,9 +16,9 @@
         "justify": "end"
       },
       "children": [
-        { "primitive": "text", "props": { "value": "{{kicker}}" }, "style": { "text_color": "on-accent", "font_weight": "semibold" }, "card": { "requires": "kicker", "max": 60 } },
-        { "primitive": "heading", "props": { "text": "{{title}}", "level": 1 }, "style": { "heading_size": "lg", "text_color": "on-accent", "line_height": "tight" }, "card": { "max": 80 } },
-        { "primitive": "text", "props": { "value": "{{subtitle}}" }, "style": { "body_size": "lg", "text_color": "on-accent" }, "card": { "requires": "subtitle", "max": 120 } },
+        { "primitive": "text", "props": { "value": "{{kicker}}" }, "style": { "font_weight": "semibold" }, "card": { "requires": "kicker", "max": 60 } },
+        { "primitive": "heading", "props": { "text": "{{title}}", "level": 1 }, "style": { "heading_size": "lg", "line_height": "tight" }, "card": { "max": 80 } },
+        { "primitive": "text", "props": { "value": "{{subtitle}}" }, "style": { "body_size": "lg" }, "card": { "requires": "subtitle", "max": 120 } },
         { "primitive": "credentials", "props": { "heading": "" }, "card": { "when": "pin_identity" } }
       ]
     }
