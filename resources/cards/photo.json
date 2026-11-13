@@ -17,7 +17,7 @@
       },
       "children": [
         { "primitive": "text", "props": { "value": "{{kicker}}" }, "style": { "text_color": "on-accent", "font_weight": "semibold" }, "card": { "requires": "kicker", "max": 60 } },
-        { "primitive": "heading", "props": { "text": "{{title}}", "level": 1 }, "style": { "heading_size": "xl", "text_color": "on-accent", "line_height": "tight" }, "card": { "max": 80 } },
+        { "primitive": "heading", "props": { "text": "{{title}}", "level": 1 }, "style": { "heading_size": "lg", "text_color": "on-accent", "line_height": "tight" }, "card": { "max": 80 } },
         { "primitive": "text", "props": { "value": "{{subtitle}}" }, "style": { "body_size": "lg", "text_color": "on-accent" }, "card": { "requires": "subtitle", "max": 120 } },
         { "primitive": "credentials", "props": { "heading": "" }, "card": { "when": "pin_identity" } }
       ]

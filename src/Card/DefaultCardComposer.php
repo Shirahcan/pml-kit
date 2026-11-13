@@ -35,8 +35,16 @@ final class DefaultCardComposer
     {
         $starter ??= $this->starterFor($facts);
         $values = $facts->placeholders();
+        $nodes = CardFrame::nodes($this->fill($this->starter($starter)['nodes'] ?? [], $values, $facts));
 
-        return CardFrame::nodes($this->fill($this->starter($starter)['nodes'] ?? [], $values, $facts));
+        // A card is glanced at: past the word budget the subtitle goes, so the automatic card passes its own checks.
+        $words = count(preg_split('/\s+/u', CardChecks::allWords($nodes), -1, PREG_SPLIT_NO_EMPTY) ?: []);
+
+        if ($words > CardChecks::MAX_WORDS && $facts->subtitle !== null) {
+            return $this->compose(new CardFacts($facts->title, null, $facts->kicker, $facts->picture, $facts->logo, $facts->price, $facts->pinIdentity, $facts->alt), $starter);
+        }
+
+        return $nodes;
     }
 
     /** @return array{name: string, nodes: list<array<string, mixed>>} */

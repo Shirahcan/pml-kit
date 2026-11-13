@@ -20,6 +20,21 @@ final class CardFrame
     public const SAFE_MARGIN = 60;
 
     /**
+     * The card's type scale, mirroring `CARD_TYPE_SCALE` in @shirahcan/pml: page type sizes times 1.8, so a card
+     * still reads when a feed shrinks it to about 500 px wide.
+     */
+    public const TYPE_SCALE = 1.8;
+
+    /** A heading's size in px on a wide screen, before the card scale (the renderer's `md:` sizes). */
+    public const HEADING_PX = ['sm' => 20, 'md' => 30, 'lg' => 36, 'xl' => 60];
+
+    /** A heading's default size by level, as the renderer reads it. */
+    public const HEADING_LEVEL_SIZE = [1 => 'lg', 2 => 'md', 3 => 'sm', 4 => 'sm'];
+
+    /** Body text in px, before the card scale. */
+    public const BODY_PX = ['sm' => 14, 'md' => 16, 'lg' => 18];
+
+    /**
      * Mirrors `CARD_ELEMENTS` in @shirahcan/pml (CardFrameParityTest keeps them equal). A picture, words and a few
      * marks; `credentials` is the host's pinned identity line. No forms, embeds, scripts, grids or effects.
      */
