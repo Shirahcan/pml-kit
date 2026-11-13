@@ -620,6 +620,47 @@ class PrimitiveSchema
     }
 
     /**
+     * The design with every style TOKEN in its one stored form, the schema's string (shirahcan/pml 0.5.0, E2h).
+     *
+     * The validator accepts `col_span: 7` and `col_span: "7"` as the same token (it compares the string form), but
+     * kept whichever arrived. A whole-page Build round-trips the page through PML text, where every attribute is a
+     * string, so a token saved as a number came back as a string and "What changed" named a box whose look had not
+     * changed (found 2026-11-13). Applied at the host's save gate, a round trip is lossless and the diff tells the
+     * truth. Only a number whose string form IS one of the key's tokens changes; anything else is left as it is.
+     *
+     * @param  list<mixed>  $nodes
+     * @return list<mixed>
+     */
+    public static function canonical(array $nodes): array
+    {
+        return array_map(static function ($node) {
+            if (! is_array($node)) {
+                return $node;
+            }
+
+            if (is_array($node['style'] ?? null)) {
+                foreach ($node['style'] as $key => $value) {
+                    if (! is_int($value) && ! is_float($value)) {
+                        continue;
+                    }
+
+                    $base = preg_match('/^(md|lg):([a-z_]+)$/', (string) $key, $m) === 1 ? $m[2] : (string) $key;
+
+                    if (isset(self::STYLE_ENUMS[$base]) && in_array((string) $value, self::STYLE_ENUMS[$base], true)) {
+                        $node['style'][$key] = (string) $value;
+                    }
+                }
+            }
+
+            if (is_array($node['children'] ?? null)) {
+                $node['children'] = self::canonical(array_values($node['children']));
+            }
+
+            return $node;
+        }, $nodes);
+    }
+
+    /**
      * @throws InvalidPmlException
      */
     private function validateStyle(mixed $style, string $path): void
