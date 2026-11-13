@@ -21,14 +21,19 @@ final class ElementsTypescript
     /** Where `pml:export-elements` writes by default: the package's own checkout, beside this repository. */
     public const PACKAGE_SOURCE = '../pml-ui/src/pml/elements.generated.ts';
 
-    public static function targetPath(): string
+    /**
+     * The installed copy, under the HOST's repository root (the product knows where its frontend lives; the
+     * package cannot, since it is installed under the host's vendor folder).
+     */
+    public static function targetPath(string $repoRoot): string
     {
-        return dirname(ElementCatalog::path(), 4).'/'.self::TARGET;
+        return rtrim($repoRoot, '/\\').'/'.self::TARGET;
     }
 
-    public static function packageSourcePath(): string
+    /** The pml-ui checkout beside the host's repository root, where `pml:export-elements` writes by default. */
+    public static function packageSourcePath(string $repoRoot): string
     {
-        return dirname(ElementCatalog::path(), 4).'/'.self::PACKAGE_SOURCE;
+        return rtrim($repoRoot, '/\\').'/'.self::PACKAGE_SOURCE;
     }
 
     public static function render(): string
