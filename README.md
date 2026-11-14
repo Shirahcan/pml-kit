@@ -30,4 +30,13 @@ A social card is an ordinary PML node list limited to the card subset (`CardFram
 | `CardGuard` | Drops what a card cannot hold, restores a pinned identity line, falls back to the automatic card when the scan refuses words, and reports `refused` when the automatic card's own words are refused too. |
 | `CardPublisher` | Guards, hashes, draws through the product's `CardRenderer` and stores through its `CardImageStore`. Unchanged = nothing drawn; a failed draw keeps the last good picture (`pending` when retryable, `failed` with the reason otherwise). Refused words are never drawn (`refused`: the product's metadata must stop using the old picture). `needsDrawing()` is a backfill's dry run. |
 
+Designing a card (0.10.0, shared program E4c), the same for every product:
+
+| Class | What it does |
+|---|---|
+| `CardDesign` | Whether a design may be stored: only the card subset is kept; nothing to show, or far beyond a card's size, is refused in plain words. Storing is not trusting: `CardGuard` still runs on every read and publish. |
+| `CardSpec` | The card language a Build is taught (the `{{spec}}` of ai-service's `shared.pml.card`), derived from `CardFrame::ELEMENTS`, the element catalogue and `PrimitiveSchema`, never restated. |
+| `CardBuild` | One console Build: card as PML to the model (the product's `$ask` callable), the answer read back (card, reply, `Issue:`/`Gap:`/`Suggestion:` notes), kept to the subset, checked, ONE repair, guarded. A refusal changes nothing and says why. |
+| `CardDocView` | The card document a builder loads: what will be drawn, the person's choice, and why anything was dropped, restored or refused; a refused design is handed back (`design`) so the canvas reopens it. |
+
 The product owns the queued job (retries, `report()`), the backfill command, the signed card route the renderer opens, and the storage. Portify wraps the kit's `AiRender::snapshot()` as its `CardRenderer`.
