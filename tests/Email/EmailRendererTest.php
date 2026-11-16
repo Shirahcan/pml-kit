@@ -63,7 +63,32 @@ final class EmailRendererTest extends TestCase
         $this->assertStringContainsString('href="https://portify.co"', $html);
         $this->assertStringContainsString('max-width:600px', $html);
         $this->assertStringNotContainsString('nonsense', $html, 'a brand colour that is not a colour is ignored');
-        $this->assertStringNotContainsString('<style', $html, 'no stylesheet: inline styles only (A3b adds the dark-mode block)');
+    }
+
+    public function test_real_mail_clients_get_dark_mode_a_preheader_outlook_and_a_phone_layout(): void
+    {
+        $html = (new EmailRenderer())->render(self::DESIGN, $this->brand(), ['preheader' => 'Your new time is inside'], self::HEADER, self::FOOTER);
+
+        $this->assertStringContainsString('<meta name="color-scheme" content="light dark">', $html);
+        $this->assertMatchesRegularExpression('/prefers-color-scheme:dark\)\{.*\.pml-email-box\{background-color:#1F2937!important\}/', $html, 'boxes recolour with the text in dark mode');
+        $this->assertStringContainsString('Your new time is inside', $html);
+        $this->assertStringContainsString('display:none;max-height:0', $html, 'the preheader is hidden in the email itself');
+        $this->assertStringContainsString('<!--[if mso]><table role="presentation" width="600"', $html, 'Outlook gets a fixed width');
+        $this->assertStringContainsString('.pml-email-col{display:block!important', $html, 'columns stack on a phone');
+    }
+
+    public function test_the_plain_text_part_carries_every_word_and_every_address(): void
+    {
+        $text = (new EmailRenderer())->text(self::DESIGN, [], self::HEADER, self::FOOTER, ['recipient_name' => 'Ada', 'action_text' => 'View', 'action_url' => 'https://portify.co/c/1', 'platform_name' => 'Portify']);
+
+        $this->assertStringContainsString('PORTIFY HEADER', $text);
+        $this->assertStringContainsString('Your meeting has moved', $text);
+        $this->assertStringContainsString('Hi Ada, see below', $text);
+        $this->assertStringContainsString("Heads up\nBring your passport.", $text);
+        $this->assertStringContainsString('View: https://portify.co/c/1', $text);
+        $this->assertStringContainsString('link (https://portify.co)', $text);
+        $this->assertStringContainsString('Sent by Portify.', $text);
+        $this->assertStringNotContainsString('<', $text);
     }
 
     public function test_the_standard_header_and_footer_wrap_the_email_unless_it_opts_out(): void
