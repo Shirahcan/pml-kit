@@ -65,6 +65,16 @@ final class EmailProfileTest extends TestCase
         $this->assertStringContainsString('form cannot go in an email', EmailProfile::violations($design)[0]['text']);
     }
 
+    public function test_an_allowed_setting_with_a_value_mail_clients_drop_is_refused(): void
+    {
+        $design = [['primitive' => 'box', 'style' => ['background' => 'gradient', 'padding' => 'custom']], ['primitive' => 'box', 'style' => ['background' => 'surface', 'padding' => 'normal']]];
+
+        $violations = EmailProfile::violations($design);
+
+        $this->assertCount(2, $violations);
+        $this->assertSame(['1', '1'], array_column($violations, 'at'), 'only the first box; surface and normal are fine');
+    }
+
     public function test_variables_the_email_does_not_have_are_errors(): void
     {
         $design = [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Hi {{nickname}} from {{platform_name}}']]]]];

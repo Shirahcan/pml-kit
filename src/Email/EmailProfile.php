@@ -31,6 +31,15 @@ final class EmailProfile
         'text_color', 'font_weight', 'line_height', 'letter_spacing', 'text_transform', 'border', 'border_color', 'radius',
     ];
 
+    /**
+     * Values of an allowed key that mail clients do not honour reliably: gradient and picture backgrounds (Outlook
+     * drops them), a custom colour or pixel padding (no token to keep the canvas and the inbox in step).
+     */
+    private const REFUSED_STYLE_VALUES = [
+        'background' => ['gradient', 'image', 'custom'],
+        'padding' => ['custom'],
+    ];
+
     /** Columns a mail client can lay out side by side (they stack on a phone). */
     public const MAX_COLUMNS = 2;
 
@@ -74,9 +83,11 @@ final class EmailProfile
                 }
             }
 
-            foreach (array_keys(is_array($node['style'] ?? null) ? $node['style'] : []) as $key) {
+            foreach ((is_array($node['style'] ?? null) ? $node['style'] : []) as $key => $value) {
                 if (! in_array((string) $key, self::STYLE_KEYS, true)) {
                     $found[] = self::finding('style', $where, "The {$element}'s \"".str_replace('_', '-', (string) $key).'" setting does not work in email.');
+                } elseif (in_array($value, self::REFUSED_STYLE_VALUES[(string) $key] ?? [], true)) {
+                    $found[] = self::finding('style', $where, "The {$element}'s ".str_replace('_', '-', (string) $key).' "'.$value.'" does not show reliably in email.');
                 }
             }
 
