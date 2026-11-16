@@ -152,6 +152,15 @@ final class EmailRendererTest extends TestCase
         $this->assertStringNotContainsString('class="pml-email-button"', $html);
     }
 
+    public function test_a_prepared_lines_link_keeps_its_address_in_the_plain_text_part(): void
+    {
+        $text = (new EmailRenderer())->text([['primitive' => 'text', 'props' => ['value' => '{{preferences_line}}']]], [], [], [], [
+            'preferences_line' => '<p><small><a href="https://portify.co/settings/notifications" style="color:#000">Manage email preferences</a></small></p>',
+        ]);
+
+        $this->assertSame('Manage email preferences (https://portify.co/settings/notifications)', $text);
+    }
+
     public function test_a_prepared_html_value_is_filled_unescaped_as_its_own_block(): void
     {
         $design = [['primitive' => 'text', 'props' => ['value' => '{{summary_html}}']], ['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'After']]]]];

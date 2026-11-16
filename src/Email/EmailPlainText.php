@@ -26,7 +26,8 @@ final class EmailPlainText
         $prepared = [];
         foreach ($values as $name => $value) {
             if ($value !== null && is_scalar($value) && EmailValues::isPrepared((string) $name)) {
-                $prepared[(string) $name] = trim(html_entity_decode(strip_tags(str_replace(['</p>', '</li>', '</tr>', '<br>'], ["\n\n", "\n", "\n", "\n"], (string) $value)), ENT_QUOTES, 'UTF-8'));
+                $html = (string) preg_replace('#<a\s[^>]*href="([^"]*)"[^>]*>(.*?)</a>#si', '$2 ($1)', (string) $value);
+                $prepared[(string) $name] = trim(html_entity_decode(strip_tags(str_replace(['</p>', '</li>', '</tr>', '<br>'], ["\n\n", "\n", "\n", "\n"], $html)), ENT_QUOTES, 'UTF-8'));
             }
         }
         $text = EmailValues::fillPrepared($text, $prepared, $strip);
