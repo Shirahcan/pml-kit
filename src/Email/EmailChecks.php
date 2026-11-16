@@ -47,6 +47,33 @@ final class EmailChecks
     }
 
     /**
+     * Lines an email must carry AS SENT, whichever chrome it uses (pml-email A4). The product names them per email
+     * (a marketing email: its unsubscribe link, `unsubscribe_url`; under CASL, its sender's mailing address). With the
+     * standard chrome the footer may carry them; an email that opts out (`chrome: none`) must carry them in its own
+     * body, so opting out of the header and footer can never drop a required line.
+     *
+     * @param  list<array<string, mixed>>  $nodes  the email's own design
+     * @param  array{chrome?: string}  $config
+     * @param  list<array<string, mixed>>  $footer  the product's standard footer
+     * @param  list<string>  $required  variables that must appear, e.g. ['unsubscribe_url']
+     * @return list<array{kind: 'error', code: string, text: string}>
+     */
+    public static function requiredLines(array $nodes, array $config, array $footer, array $required): array
+    {
+        $standard = ($config['chrome'] ?? 'standard') !== 'none';
+        $carried = [...EmailProfile::variables($nodes), ...($standard ? EmailProfile::variables($footer) : [])];
+        $out = [];
+
+        foreach (array_diff(array_map('strtolower', $required), $carried) as $missing) {
+            $out[] = ['kind' => 'error', 'code' => 'required_line', 'text' => $standard
+                ? "{{{$missing}}} must be in this email: neither its body nor the standard footer has it."
+                : "{{{$missing}}} must be in this email: it leaves out the standard footer, so its own body has to carry it."];
+        }
+
+        return $out;
+    }
+
+    /**
      * @param  list<array{kind: string}>  $findings
      * @return list<array{kind: string}>
      */

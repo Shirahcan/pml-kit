@@ -96,6 +96,18 @@ final class EmailProfileTest extends TestCase
         $this->assertSame('issue', array_values(array_filter($findings, fn ($f) => $f['code'] === 'main_button'))[0]['kind']);
     }
 
+    public function test_a_required_line_cannot_be_lost_by_opting_out_of_the_standard_footer(): void
+    {
+        $footer = [['primitive' => 'small', 'children' => [['primitive' => 'link', 'props' => ['href' => '{{unsubscribe_url}}'], 'children' => [['primitive' => 'text', 'props' => ['value' => 'Unsubscribe']]]]]]];
+        $body = [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'News']]]]];
+        $bodyWithLine = [...$body, ...$footer];
+
+        $this->assertSame([], EmailChecks::requiredLines($body, [], $footer, ['unsubscribe_url']), 'the standard footer carries it');
+        $this->assertSame(['required_line'], array_column(EmailChecks::requiredLines($body, ['chrome' => 'none'], $footer, ['unsubscribe_url']), 'code'), 'opting out drops the footer, so the body must carry it');
+        $this->assertSame([], EmailChecks::requiredLines($bodyWithLine, ['chrome' => 'none'], $footer, ['unsubscribe_url']));
+        $this->assertCount(1, EmailChecks::requiredLines($body, [], [], ['unsubscribe_url']), 'a footer without it does not count');
+    }
+
     public function test_it_reads_variables_and_the_main_button(): void
     {
         $this->assertSame(['recipient_name', 'action_text', 'action_url'], EmailProfile::variables(self::EMAIL));
