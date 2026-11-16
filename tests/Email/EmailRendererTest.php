@@ -37,7 +37,7 @@ final class EmailRendererTest extends TestCase
         ['primitive' => 'heading', 'props' => ['text' => 'Your meeting has moved', 'level' => 2]],
         ['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Hi {{recipient_name}}, ']], ['primitive' => 'strong', 'children' => [['primitive' => 'text', 'props' => ['value' => 'see below']]]]]],
         ['primitive' => 'callout', 'props' => ['tone' => 'warning', 'title' => 'Heads up'], 'children' => [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Bring your passport.']]]]]],
-        ['primitive' => 'button', 'props' => ['label' => '{{action_text}}', 'href' => '{{action_url}}', 'variant' => 'primary'], 'style' => ['align' => 'center']],
+        ['primitive' => 'button', 'props' => ['label' => '{{action_label}}', 'href' => '{{action_url}}', 'variant' => 'primary'], 'style' => ['align' => 'center']],
         ['primitive' => 'image', 'props' => ['src' => 'https://portify.co/x.png', 'alt' => 'A picture', 'size' => 'sm']],
         ['primitive' => 'divider'],
         ['primitive' => 'grid', 'props' => ['columns' => 2], 'children' => [['primitive' => 'box', 'children' => [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Left']]]]]], ['primitive' => 'box', 'children' => [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Right']]]]]]]],
@@ -50,7 +50,7 @@ final class EmailRendererTest extends TestCase
 
     public function test_every_element_draws_as_email_html(): void
     {
-        $html = (new EmailRenderer())->render(self::DESIGN, $this->brand(), ['subject' => 'Moved'], self::HEADER, self::FOOTER);
+        $html = (new EmailRenderer())->render(self::DESIGN, $this->brand(), ['subject' => 'Moved', 'missing' => 'keep'], self::HEADER, self::FOOTER);
 
         $this->assertStringContainsString('<h2 style="', $html);
         $this->assertStringContainsString('<strong>see below</strong>', $html);
@@ -79,7 +79,7 @@ final class EmailRendererTest extends TestCase
 
     public function test_the_plain_text_part_carries_every_word_and_every_address(): void
     {
-        $text = (new EmailRenderer())->text(self::DESIGN, [], self::HEADER, self::FOOTER, ['recipient_name' => 'Ada', 'action_text' => 'View', 'action_url' => 'https://portify.co/c/1', 'platform_name' => 'Portify']);
+        $text = (new EmailRenderer())->text(self::DESIGN, [], self::HEADER, self::FOOTER, ['recipient_name' => 'Ada', 'action_label' => 'View', 'action_url' => 'https://portify.co/c/1', 'platform_name' => 'Portify']);
 
         $this->assertStringContainsString('PORTIFY HEADER', $text);
         $this->assertStringContainsString('Your meeting has moved', $text);
@@ -102,15 +102,63 @@ final class EmailRendererTest extends TestCase
         $this->assertStringNotContainsString('pml-email-footer', $without);
     }
 
-    public function test_values_fill_once_escaped_and_a_missing_value_stays_as_written(): void
+    public function test_values_fill_once_escaped_and_a_missing_value_stays_as_written_in_a_preview(): void
     {
-        $html = (new EmailRenderer())->render(self::DESIGN, $this->brand(), [], [], [], [
-            'recipient_name' => '<b>Ada</b> {{action_url}}',
+        $html = (new EmailRenderer())->render(self::DESIGN, $this->brand(), ['missing' => 'keep'], [], [], [
+            'recipient_name' => '<b>Ada</b> {{action_url}} {{summary_html}}',
             'action_url' => 'https://portify.co/case?a=1&b=2',
         ]);
 
-        $this->assertStringContainsString('Hi &lt;b&gt;Ada&lt;/b&gt; {{action_url}},', $html, 'escaped, and never filled twice');
+        $this->assertStringContainsString('Hi &lt;b&gt;Ada&lt;/b&gt; {{action_url}} {{summary_html}},', $html, 'escaped, and words a person typed are never filled');
         $this->assertStringContainsString('href="https://portify.co/case?a=1&amp;b=2"', $html);
-        $this->assertStringContainsString('{{action_text}}', $html, 'no value: left as written for a preview');
+        $this->assertStringContainsString('{{action_label}}', $html, 'no value: left as written for a preview');
+    }
+
+    public function test_sending_strips_a_missing_value_and_leaves_out_an_empty_button_and_an_emptied_detail_row(): void
+    {
+        $cell = fn (array $inline) => ['primitive' => 'cell', 'children' => [['primitive' => 'p', 'children' => $inline]]];
+        $text = fn (string $v) => ['primitive' => 'text', 'props' => ['value' => $v]];
+        $design = [
+            ['primitive' => 'p', 'children' => [$text('Hi {{recipient_name}}{{nickname}}. Typed: {{typed}}')]],
+            ['primitive' => 'button', 'props' => ['label' => '{{action_label}}', 'href' => '{{action_url}}']],
+            ['primitive' => 'table', 'children' => [
+                ['primitive' => 'row', 'children' => [$cell([$text('Date')]), $cell([$text('{{meeting_date}}')])]],
+                ['primitive' => 'row', 'children' => [$cell([$text('Timezone')]), $cell([['primitive' => 'strong', 'children' => [$text('{{timezone}}')]]])]],
+            ]],
+        ];
+
+        $html = (new EmailRenderer())->render($design, $this->brand(), [], [], [], ['recipient_name' => 'Ada', 'meeting_date' => 'May 3', 'typed' => 'my {{nickname}}']);
+
+        $this->assertStringContainsString('Hi Ada. Typed: my {{nickname}}', $html, 'missing stripped, typed braces kept');
+        $this->assertStringNotContainsString('class="pml-email-button"', $html, 'no action_url on this send: no button');
+        $this->assertStringContainsString('May 3', $html);
+        $this->assertStringNotContainsString('Timezone', $html, 'the row whose value came out empty is dropped');
+        $this->assertStringNotContainsString("\u{E000}", $html);
+    }
+
+    public function test_an_address_that_came_out_unsafe_is_never_sent(): void
+    {
+        $design = [
+            ['primitive' => 'button', 'props' => ['label' => 'Pay', 'href' => '{{pay_url}}']],
+            ['primitive' => 'p', 'children' => [['primitive' => 'link', 'props' => ['href' => '{{site_url}}'], 'children' => [['primitive' => 'text', 'props' => ['value' => 'Our site']]]]]],
+            ['primitive' => 'image', 'props' => ['src' => '{{logo_url}}', 'alt' => 'Logo']],
+        ];
+
+        $html = (new EmailRenderer())->render($design, $this->brand(), [], [], [], ['pay_url' => 'javascript:alert(1)', 'site_url' => 'javascript:alert(2)', 'logo_url' => 'data:image/png;base64,AAAA']);
+
+        $this->assertStringNotContainsString('javascript:', $html);
+        $this->assertStringNotContainsString('data:image', $html);
+        $this->assertStringContainsString('Our site', $html, 'the link keeps its words');
+        $this->assertStringNotContainsString('class="pml-email-button"', $html);
+    }
+
+    public function test_a_prepared_html_value_is_filled_unescaped_as_its_own_block(): void
+    {
+        $design = [['primitive' => 'text', 'props' => ['value' => '{{summary_html}}']], ['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'After']]]]];
+
+        $html = (new EmailRenderer())->render($design, $this->brand(), [], [], [], ['summary_html' => '<table><tr><td>Prepared</td></tr></table>']);
+
+        $this->assertStringContainsString('<table><tr><td>Prepared</td></tr></table>', $html);
+        $this->assertDoesNotMatchRegularExpression('#<p[^>]*>\s*<table><tr><td>Prepared#', $html, 'never inside a paragraph');
     }
 }

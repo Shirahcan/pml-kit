@@ -20,7 +20,7 @@
         "auto": ["scroll", "step"],
         "focal": ["center", "top", "bottom", "left", "right"],
         "as": ["div", "section", "article", "aside", "main", "figure", "address", "blockquote"],
-        "tone": ["info", "tip", "warning", "success"],
+        "tone": ["info", "tip", "warning", "success", "danger"],
         "depth": ["2", "3"],
         "icon": ["check-circle", "star", "heart", "globe", "briefcase", "clock", "file-text", "users", "award", "message-circle", "map-pin", "phone", "clipboard-check", "send"],
         "field_kind": ["text", "email", "tel", "textarea", "select", "checkbox", "number", "date"],

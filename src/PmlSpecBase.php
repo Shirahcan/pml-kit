@@ -265,7 +265,7 @@ abstract class PmlSpecBase
           <faq heading="...">  <faq-item question="...">answer in Markdown</faq-item> ...  </faq>
             - answers to what anxious applicants actually ask. Search engines read it as an FAQ, so
             use it for real questions only (two or more), each answered plainly.
-          <callout tone="info|tip|warning|success" title="...">Markdown or children</callout> - a short,
+          <callout tone="info|tip|warning|success|danger" title="...">Markdown or children</callout> - a short,
             toned aside a reader must not miss (a deadline, a common mistake, a tip). Holds prose,
             a list, a button or an image; never a section or a form.
         Lists - ALWAYS use <list> for a list (never Markdown "- " bullets). ONE tag, a type axis,

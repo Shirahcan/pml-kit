@@ -17,17 +17,21 @@ final class EmailPlainText
     public function text(array $nodes, array $config = [], array $header = [], array $footer = [], array $values = []): string
     {
         $chrome = ($config['chrome'] ?? 'standard') !== 'none';
+        $strip = ($config['missing'] ?? 'strip') !== 'keep';
+        [$nodes, $header, $footer] = [EmailValues::fillTree($nodes, $values, $strip), EmailValues::fillTree($header, $values, $strip), EmailValues::fillTree($footer, $values, $strip)];
         $parts = [...($chrome ? [$this->blocks($header)] : []), $this->blocks($nodes), ...($chrome ? [$this->blocks($footer)] : [])];
-        $text = trim(preg_replace("/\n{3,}/", "\n\n", implode("\n\n", array_filter($parts, fn ($p) => trim($p) !== ''))) ?? '');
+        $text = implode("\n\n", array_filter($parts, fn ($p) => trim($p) !== ''));
 
-        $map = [];
+        // Prepared-HTML values read as their words here.
+        $prepared = [];
         foreach ($values as $name => $value) {
-            if ($value !== null) {
-                $map['{{'.$name.'}}'] = (string) $value;
+            if ($value !== null && is_scalar($value) && EmailValues::isPrepared((string) $name)) {
+                $prepared[(string) $name] = trim(html_entity_decode(strip_tags(str_replace(['</p>', '</li>', '</tr>', '<br>'], ["\n\n", "\n", "\n", "\n"], (string) $value)), ENT_QUOTES, 'UTF-8'));
             }
         }
+        $text = EmailValues::fillPrepared($text, $prepared, $strip);
 
-        return $map === [] ? $text : strtr($text, $map);
+        return trim((string) preg_replace("/\n{3,}/", "\n\n", $text));
     }
 
     /** @param  list<array<string, mixed>>  $nodes */
@@ -49,7 +53,7 @@ final class EmailPlainText
             'spacer' => '',
             'pre' => (string) ($props['text'] ?? ''),
             'list' => implode("\n", array_map(fn (array $li) => '- '.trim(((string) ($li['props']['title'] ?? '')).' '.((string) ($li['props']['text'] ?? '')).' '.$this->inline((array) ($li['children'] ?? []))), $kids)),
-            'table' => implode("\n", array_map(fn (array $row) => implode(': ', array_map(fn (array $cell) => trim($this->inline((array) ($cell['children'] ?? [])).' '.$this->blocks((array) ($cell['children'] ?? []))), (array) ($row['children'] ?? []))), $kids)),
+            'table' => implode("\n", array_map(fn (array $row) => implode(': ', array_map(fn (array $cell) => trim($this->inline((array) ($cell['children'] ?? []))), (array) ($row['children'] ?? []))), $kids)),
             'callout' => trim(((string) ($props['title'] ?? '')).("\n".$this->blocks($kids))),
             'rich_text' => $this->richText($props),
             'box', 'grid', 'header', 'footer', 'blockquote' => $this->blocks($kids),

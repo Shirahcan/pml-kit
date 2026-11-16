@@ -28,6 +28,10 @@ final class EmailBlocks
         $css = $this->style->css($style);
         $font = 'font-family:'.$this->style->font();
 
+        if (($node['primitive'] ?? '') === 'text' && ($name = EmailValues::preparedPlaceholder((string) ($props['value'] ?? ''))) !== null) {
+            return '{{'.$name.'}}'; // prepared HTML, filled unescaped after drawing, standing alone as a block
+        }
+
         return match ((string) ($node['primitive'] ?? '')) {
             'box', 'header', 'footer' => $this->cell($this->blocks($kids), $css),
             'grid' => $this->grid($kids, $css),
@@ -161,6 +165,10 @@ final class EmailBlocks
 
     private function blocksOrInline(array $kids): string
     {
+        if (count($kids) === 1 && ($kids[0]['primitive'] ?? '') === 'p') {
+            return $this->inlines((array) ($kids[0]['children'] ?? [])); // a cell's one paragraph, without paragraph spacing
+        }
+
         $inline = array_filter($kids, fn ($k) => in_array($k['primitive'] ?? '', ['text', 'strong', 'emphasis', 'link', 'span', 'mark', 'code', 'br', 'small'], true));
 
         return count($inline) === count($kids) ? $this->inlines($kids) : $this->blocks($kids);
