@@ -50,7 +50,7 @@ final class SemanticToPmlTest extends TestCase
         $nodes = $result['nodes'];
 
         $this->assertSame(
-            ['heading', 'p', 'callout', 'button', 'divider', 'button', 'button', 'box', 'callout', 'text', 'callout', 'list', 'table', 'small'],
+            ['heading', 'p', 'callout', 'button', 'divider', 'button', 'button', 'box', 'callout', 'text', 'callout', 'list', 'table', 'p'],
             self::primitives($nodes),
         );
         $this->assertSame(['text' => 'Booking Confirmed Confirmed', 'level' => 2], $nodes[0]['props']);
@@ -66,6 +66,7 @@ final class SemanticToPmlTest extends TestCase
         $this->assertArrayNotHasKey('props', $nodes[10], 'a note card has no tone');
         $this->assertSame(['title' => 'Payments', 'text' => '– Accept payments'], $nodes[11]['children'][0]['props']);
         $this->assertSame('p', $nodes[12]['children'][0]['children'][1]['children'][0]['primitive'], 'a cell holds a paragraph');
+        $this->assertSame('small', $nodes[13]['children'][0]['primitive'], 'fine print is a small inside a paragraph, as PML nests it');
         $this->assertSame([], $result['unconverted']);
         $this->assertCount(1, $result['notes'], 'the heading badge is listed as a change');
     }

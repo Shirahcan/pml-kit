@@ -2,6 +2,8 @@
 
 namespace Shirahcan\Pml\Email;
 
+use Shirahcan\Pml\ElementCatalog;
+
 /**
  * What an EMAIL may hold (shared program, pml-email A1/A2, owner 2026-11-16: "the email should also move to a visual
  * editor + the studio"). An email is an ordinary PML node list, like a page or a card, restricted to what mail clients
@@ -54,9 +56,10 @@ final class EmailProfile
      * Empty when the design is a valid email.
      *
      * @param  list<array<string, mixed>>  $nodes
+     * @param  string|null  $parent  the element these nodes sit in (null: the top of the email)
      * @return list<array{code: string, at: string, text: string}>
      */
-    public static function violations(array $nodes, string $at = ''): array
+    public static function violations(array $nodes, string $at = '', ?string $parent = null): array
     {
         $found = [];
 
@@ -99,8 +102,12 @@ final class EmailProfile
 
             $found = [...$found, ...self::elementRules($element, (array) ($node['props'] ?? []), $where)];
 
+            if (($nesting = self::nesting($parent, $element)) !== null) {
+                $found[] = self::finding('nesting', $where, $nesting);
+            }
+
             if (is_array($node['children'] ?? null)) {
-                $found = [...$found, ...self::violations($node['children'], $where)];
+                $found = [...$found, ...self::violations($node['children'], $where, $element)];
             }
         }
 
@@ -198,6 +205,36 @@ final class EmailProfile
     }
 
     /** @return array{code: string, at: string, text: string} */
+    /**
+     * PML's own nesting rules (the element data every editor reads), so an email is always one the visual editor
+     * accepts: an element with fixed parents sits in one of them, a container with a fixed list takes only those, and
+     * an element that holds words (a paragraph) takes only words and inline marks.
+     */
+    private static function nesting(?string $parent, string $element): ?string
+    {
+        $parents = ElementCatalog::parentsOf($element);
+
+        if ($parents !== null && ! in_array($parent, $parents, true)) {
+            return "A {$element} can only go inside a ".implode(', ', $parents).'.';
+        }
+
+        if ($parent === null) {
+            return null;
+        }
+
+        $children = ElementCatalog::childrenOf($parent);
+
+        if ($children !== null && ! in_array($element, $children, true)) {
+            return "A {$parent} can only hold ".implode(', ', $children).", not a {$element}.";
+        }
+
+        if (ElementCatalog::holdsInline($parent) && $element !== 'text' && ! in_array($element, ElementCatalog::inline(), true)) {
+            return "A {$parent} holds words, not a {$element}.";
+        }
+
+        return null;
+    }
+
     private static function finding(string $code, string $at, string $text): array
     {
         return ['code' => $code, 'at' => $at, 'text' => $text];

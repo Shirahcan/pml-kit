@@ -98,7 +98,7 @@ final class SemanticToPml
         $only = $this->onlyChild($el);
 
         if ($only instanceof DOMElement && strtolower($only->tagName) === 'small') {
-            return [['primitive' => 'small', 'children' => $this->inlines($only)]];
+            return [['primitive' => 'p', 'children' => [['primitive' => 'small', 'children' => $this->inlines($only)]]]]; // fine print: PML's small sits inside a paragraph
         }
 
         return $this->paragraphHtml($this->innerHtml($el));
@@ -154,7 +154,7 @@ final class SemanticToPml
             [$label, $value] = SemanticTokens::pair($body);
 
             return [['primitive' => 'box', 'style' => ['background' => 'surface', 'padding' => 'normal', 'radius' => 'md'], 'children' => [
-                ['primitive' => 'small', 'children' => [['primitive' => 'text', 'props' => ['value' => $label]]]],
+                ['primitive' => 'p', 'children' => [['primitive' => 'small', 'children' => [['primitive' => 'text', 'props' => ['value' => $label]]]]]],
                 ['primitive' => 'pre', 'props' => ['text' => $value]],
             ]]];
         }

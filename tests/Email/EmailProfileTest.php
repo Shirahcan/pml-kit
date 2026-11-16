@@ -96,6 +96,21 @@ final class EmailProfileTest extends TestCase
         $this->assertSame('issue', array_values(array_filter($findings, fn ($f) => $f['code'] === 'main_button'))[0]['kind']);
     }
 
+    public function test_an_email_follows_pmls_own_nesting_so_the_visual_editor_accepts_it(): void
+    {
+        $text = ['primitive' => 'text', 'props' => ['value' => 'Fine print']];
+        $design = [
+            ['primitive' => 'small', 'children' => [$text]],
+            ['primitive' => 'p', 'children' => [['primitive' => 'small', 'children' => [$text]]]],
+            ['primitive' => 'p', 'children' => [['primitive' => 'heading', 'props' => ['text' => 'H', 'level' => 2]]]],
+            ['primitive' => 'table', 'children' => [['primitive' => 'cell', 'children' => [$text]]]],
+        ];
+
+        $nesting = array_values(array_filter(EmailProfile::violations($design), fn (array $v) => $v['code'] === 'nesting'));
+
+        $this->assertSame(['1', '3.1', '4.1'], array_column($nesting, 'at'), 'block small, a heading in a paragraph, a cell outside a row');
+    }
+
     public function test_a_required_line_cannot_be_lost_by_opting_out_of_the_standard_footer(): void
     {
         $footer = [['primitive' => 'small', 'children' => [['primitive' => 'link', 'props' => ['href' => '{{unsubscribe_url}}'], 'children' => [['primitive' => 'text', 'props' => ['value' => 'Unsubscribe']]]]]]];
