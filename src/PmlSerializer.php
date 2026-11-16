@@ -173,7 +173,7 @@ class PmlSerializer
                 return '{'.$value['$expr'].'}';
             }
 
-            return str_replace(['\\', '{', '}', '<'], ['\\\\', '\\{', '\\}', '\\<'], (string) $value);
+            return TemplateVariable::escapeWords((string) $value);
         }
 
         if (! is_string($primitive) || ! ElementCatalog::holdsInline($primitive)) {

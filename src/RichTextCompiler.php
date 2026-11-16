@@ -114,6 +114,14 @@ class RichTextCompiler
                 continue;
             }
 
+            // `{{name}}` is a template variable (an email's {{recipient_name}}): literal words, never an expression.
+            if ($c === '{' && ($variable = TemplateVariable::at($source, $i)) !== null) {
+                $buf .= $variable;
+                $i += strlen($variable);
+
+                continue;
+            }
+
             if ($c === '{') {
                 $end = self::closing($source, $i);
 

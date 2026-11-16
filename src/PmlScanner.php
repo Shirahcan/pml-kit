@@ -148,6 +148,15 @@ class PmlScanner
                     continue;
                 }
 
+                // `{{name}}` is a template variable (an email's {{recipient_name}}): literal words, never an expression.
+                if ($c === '{' && ($variable = TemplateVariable::at($this->src, $this->pos)) !== null) {
+                    for ($n = strlen($variable); $n > 0; $n--) {
+                        $text .= $this->advance();
+                    }
+
+                    continue;
+                }
+
                 if ($c === '{') {
                     $this->flushRun($nodes, $text);
                     $text = '';
