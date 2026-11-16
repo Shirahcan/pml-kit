@@ -200,7 +200,7 @@ class PmlSerializer
         return array_keys($props) === ['value']
             && (is_string($props['value']) || (is_array($props['value']) && isset($props['value']['$expr'])))
             && empty($node['style'])
-            && array_intersect_key($node, array_flip(['if', 'else_if', 'else', 'each', 'on', 'key', 'slot', 'children'])) === [];
+            && array_intersect_key($node, array_flip(['if', 'else_if', 'else', 'each', 'on', 'key', 'slot', 'part', 'children'])) === [];
     }
 
     /**
@@ -267,6 +267,11 @@ class PmlSerializer
         // Which named slot of the component around it this element goes into (component props p04).
         if (is_string($control['slot'] ?? null)) {
             $parts[] = $this->attr('slot', $control['slot']);
+        }
+
+        // Which part of a layout this element is (post layouts A1a).
+        if (is_string($control['part'] ?? null)) {
+            $parts[] = $this->attr('part', $control['part']);
         }
 
         // The element's permanent identity (B1), last so the attributes a person reads come first.

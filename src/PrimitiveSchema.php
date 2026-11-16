@@ -374,6 +374,11 @@ class PrimitiveSchema
             throw new InvalidPmlException('A "slot" names one of the places a component offers: a letter, then letters, digits, "_" or "-".', "{$path}.slot");
         }
 
+        // "part" names the part of a layout this element is (post layouts A1a): a layout locks, repeats or checks it.
+        if (array_key_exists('part', $node) && (! is_string($node['part']) || preg_match(self::NODE_KEY, $node['part']) !== 1)) {
+            throw new InvalidPmlException('A "part" names one part of the layout: a letter, then letters, digits, "_" or "-".', "{$path}.part");
+        }
+
         // "uid" is the element's permanent identity (B1): system-written, a short lowercase id only.
         if (array_key_exists('uid', $node) && (! is_string($node['uid']) || preg_match(PmlUids::PATTERN, $node['uid']) !== 1)) {
             throw new InvalidPmlException('An element "uid" is its permanent id: 6 to 16 lowercase letters and digits.', "{$path}.uid");

@@ -68,7 +68,7 @@ final class PmlUids
         return ($node['primitive'] ?? null) === 'rich_text'
             && is_string($node['props']['markdown'] ?? null)
             && array_keys(array_diff_key((array) $node['props'], ['doc' => true])) === ['markdown']
-            && array_intersect_key($node, array_flip(['style', 'children', 'key', 'if', 'else_if', 'else', 'each', 'on'])) === [];
+            && array_intersect_key($node, array_flip(['style', 'children', 'key', 'part', 'if', 'else_if', 'else', 'each', 'on'])) === [];
     }
 
     /** A word run: plain `text` holding only its value, written bare inside a paragraph. */
@@ -76,7 +76,7 @@ final class PmlUids
     {
         return ($node['primitive'] ?? null) === 'text'
             && array_keys((array) ($node['props'] ?? [])) === ['value']
-            && array_intersect_key($node, array_flip(['style', 'children', 'key', 'if', 'else_if', 'else', 'each', 'on'])) === [];
+            && array_intersect_key($node, array_flip(['style', 'children', 'key', 'part', 'if', 'else_if', 'else', 'each', 'on'])) === [];
     }
 
     /**

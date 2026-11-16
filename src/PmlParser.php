@@ -289,6 +289,15 @@ class PmlParser
             unset($props['slot']);
         }
 
+        // `part="faq"`: which part of a layout this element is (post layouts A1a, 2026-11-16), so a layout can
+        // lock it, repeat it or check it. Like `slot`, a node-level field, never a prop of any element.
+        $part = null;
+
+        if (array_key_exists('part', $props) && is_string($props['part'])) {
+            $part = $props['part'];
+            unset($props['part']);
+        }
+
         foreach (['if', 'else_if'] as $attr) {
             if (array_key_exists($attr, $props)) {
                 $control[$attr] = $this->expression($props[$attr], str_replace('_', '-', $attr));
@@ -380,6 +389,10 @@ class PmlParser
 
         if ($slot !== null) {
             $control['slot'] = $slot;
+        }
+
+        if ($part !== null) {
+            $control['part'] = $part;
         }
 
         return $this->canonical($node, $props, $control, $key, $uid);
@@ -509,6 +522,9 @@ class PmlParser
         }
         if (is_string($control['slot'] ?? null)) {
             $out['slot'] = $control['slot'];
+        }
+        if (is_string($control['part'] ?? null)) {
+            $out['part'] = $control['part'];
         }
         if (isset($node['children'])) {
             $out['children'] = $node['children'];
