@@ -64,7 +64,7 @@ class PmlSnapshotBuilder
 
     /**
      * @param  list<array<string, mixed>>  $componentTree
-     * @param  array{packages?: list<array<string, mixed>>, credentials?: array<string, mixed>, testimonials?: list<array<string, mixed>>}  $moduleData
+     * @param  array{packages?: list<array<string, mixed>>, credentials?: array<string, mixed>, testimonials?: list<array<string, mixed>>, post?: array<string, mixed>}  $moduleData
      * @param  array<string, callable>  $partials  the site's partial library (handle => expander)
      * @param  ?LicenseeIdentity  $identity  when given (the publish/preflight path), the s.44
      *                                       required-elements check runs on the resolved page. Null
@@ -201,6 +201,11 @@ class PmlSnapshotBuilder
             }
 
             $node['props'] = $props;
+        } elseif (in_array($primitive, self::POST_PARTS, true)) {
+            // A post's own fields (post layouts C2a): title, byline, cover, related... drawn by the post parts.
+            $props = is_array($node['props'] ?? null) ? $node['props'] : [];
+            $props['resolved'] = self::postFields(is_array($moduleData['post'] ?? null) ? $moduleData['post'] : []);
+            $node['props'] = $props;
         }
 
         if (isset($node['children']) && is_array($node['children'])) {
@@ -215,6 +220,39 @@ class PmlSnapshotBuilder
         }
 
         return $node;
+    }
+
+    /** The parts that draw a post's own fields (post layouts C2a). */
+    public const POST_PARTS = ['post_header', 'post_cover', 'post_related', 'post_disclaimer'];
+
+    /**
+     * The fields a post part may draw, never more. ⚠ "Reviewed by" is an attestation: a reviewer is kept only when
+     * that person confirmed THIS version (`reviewer.confirmed === true`), so no product can show an unconfirmed name.
+     * An empty field is dropped, so a part draws nothing rather than a placeholder.
+     *
+     * @param  array<string, mixed>  $post
+     * @return array<string, mixed>
+     */
+    public static function postFields(array $post): array
+    {
+        $keep = ['title', 'dek', 'category', 'tags', 'author_name', 'published_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources'];
+        $out = [];
+
+        foreach ($keep as $field) {
+            $value = $post[$field] ?? null;
+
+            if ($value === null || $value === '' || $value === []) {
+                continue;
+            }
+
+            if ($field === 'reviewer' && (! is_array($value) || ($value['confirmed'] ?? false) !== true)) {
+                continue;
+            }
+
+            $out[$field] = $value;
+        }
+
+        return $out;
     }
 
     /**

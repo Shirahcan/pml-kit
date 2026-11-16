@@ -254,6 +254,28 @@
                 "heading": { "type": "prose" }
             }
         },
+        "post_header": {
+            "container": false,
+            "props": {}
+        },
+        "post_cover": {
+            "container": false,
+            "props": {
+                "ratio": { "type": "enum", "values": "@ratio" }
+            }
+        },
+        "post_related": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" }
+            }
+        },
+        "post_disclaimer": {
+            "container": false,
+            "props": {
+                "text": { "type": "prose" }
+            }
+        },
         "porter_intake": {
             "container": false,
             "props": {
