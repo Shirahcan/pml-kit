@@ -152,6 +152,15 @@ final class EmailRendererTest extends TestCase
         $this->assertStringNotContainsString('class="pml-email-button"', $html);
     }
 
+    public function test_a_value_written_on_several_lines_keeps_its_line_breaks_and_stays_escaped(): void
+    {
+        $design = [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => '{{summary}}']]]]];
+
+        $html = (new EmailRenderer())->render($design, $this->brand(), [], [], [], ['summary' => "First line\nSecond <b>line</b>"]);
+
+        $this->assertStringContainsString('First line<br>Second &lt;b&gt;line&lt;/b&gt;', $html);
+    }
+
     public function test_a_prepared_lines_link_keeps_its_address_in_the_plain_text_part(): void
     {
         $text = (new EmailRenderer())->text([['primitive' => 'text', 'props' => ['value' => '{{preferences_line}}']]], [], [], [], [

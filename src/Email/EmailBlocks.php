@@ -59,7 +59,8 @@ final class EmailBlocks
         $kids = (array) ($node['children'] ?? []);
 
         return match ((string) ($node['primitive'] ?? '')) {
-            'text' => isset($props['value']) ? self::h((string) $props['value']) : $this->inlines($kids),
+            // A line break in the words (a filled value written on several lines) stays a line break in the email.
+            'text' => isset($props['value']) ? str_replace("\n", '<br>', self::h(str_replace("\r\n", "\n", (string) $props['value']))) : $this->inlines($kids),
             'p', 'span' => $this->inlines($kids),
             'strong' => '<strong>'.$this->inlines($kids).'</strong>',
             'emphasis' => '<em>'.$this->inlines($kids).'</em>',
