@@ -103,7 +103,8 @@ final class EmailBlocks
 
     private function image(array $props): string
     {
-        $width = ['xs' => 120, 'sm' => 240, 'md' => 400, 'lg' => 568][(string) ($props['size'] ?? 'lg')] ?? 568;
+        // `logo` (0.13.0) is a brand mark: email clients size by width, so it gets a wordmark-friendly width.
+        $width = ['xs' => 120, 'sm' => 240, 'md' => 400, 'lg' => 568, 'logo' => 160][(string) ($props['size'] ?? 'lg')] ?? 568;
         $img = '<img src="'.self::h((string) ($props['src'] ?? '')).'" alt="'.self::h((string) ($props['alt'] ?? '')).'" width="'.$width.'" style="display:block;width:100%;max-width:'.$width.'px;height:auto;border:0;outline:none">';
 
         return '<div style="margin:0 0 14px">'.$img.'</div>';

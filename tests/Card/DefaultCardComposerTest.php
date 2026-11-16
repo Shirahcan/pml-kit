@@ -112,6 +112,21 @@ class DefaultCardComposerTest extends TestCase
         $this->assertSame(json_encode($this->composer->compose($facts)), json_encode($this->composer->compose($facts)));
     }
 
+    public function test_a_cards_logo_is_drawn_at_the_logo_size_which_only_images_have(): void
+    {
+        $facts = new CardFacts('T', kicker: 'K', logo: 'https://p.test/logo.png', price: 'From $1');
+
+        foreach (['offer', 'headline'] as $starter) {
+            $logo = array_values(array_filter($this->flat($this->composer->compose($facts, $starter)), fn (array $n) => ($n['primitive'] ?? null) === 'image'));
+
+            $this->assertSame('logo', $logo[0]['props']['size'] ?? null, "{$starter}: the wordmark must not be squeezed into the 48px xs slot");
+        }
+
+        $this->assertContains('logo', ElementCatalog::enumValues(ElementCatalog::prop('image', 'size') ?? []));
+        $this->assertContains('xs', ElementCatalog::enumValues(ElementCatalog::prop('image', 'size') ?? []), 'every older image size stays valid');
+        $this->assertNotContains('logo', ElementCatalog::enumValues(ElementCatalog::prop('spacer', 'size') ?? []), 'a spacer has no logo size');
+    }
+
     public function test_every_starter_holds_only_the_card_subset_with_real_element_props(): void
     {
         $full = new CardFacts('T', subtitle: 'S', kicker: 'K', picture: 'https://p.test/x.jpg', logo: 'https://p.test/logo.png', price: 'From $1', pinIdentity: true);
