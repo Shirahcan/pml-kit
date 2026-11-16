@@ -73,4 +73,23 @@ class PostPartsBakeTest extends TestCase
         $this->assertSame([], $baked[0]['props']['resolved']);
         $this->assertArrayNotHasKey('resolved', $baked[1]['props']);
     }
+
+    public function test_a_call_to_action_bakes_its_library_row_falls_back_to_the_stages_inline_row_and_is_empty_when_unset(): void
+    {
+        $ctas = [
+            'decision:banner' => ['headline' => 'Move forward with a licensed consultant you can trust', 'button' => ['label' => 'Get Matched Now', 'href' => '/marketplace/intake']],
+            'awareness:inline' => ['headline' => 'Rules change fast. Get the update before your next step.', 'button' => ['label' => 'Get updates', 'href' => null, 'kind' => 'subscribe']],
+        ];
+        $tree = [
+            ['primitive' => 'post_cta', 'props' => ['stage' => 'decision', 'variant' => 'banner']],
+            ['primitive' => 'post_cta', 'props' => ['stage' => 'awareness', 'variant' => 'rail']],
+            ['primitive' => 'post_cta', 'props' => ['stage' => 'consideration', 'variant' => 'inline']],
+        ];
+
+        $baked = $this->builder()->snapshot($tree, ['ctas' => $ctas])['tree'];
+
+        $this->assertSame('Get Matched Now', $baked[0]['props']['resolved']['button']['label']);
+        $this->assertSame('Rules change fast. Get the update before your next step.', $baked[1]['props']['resolved']['headline'], 'a rail with no row of its own uses the stage inline row');
+        $this->assertSame([], $baked[2]['props']['resolved'], 'an unset stage draws nothing, never a default');
+    }
 }

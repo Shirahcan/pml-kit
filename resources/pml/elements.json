@@ -3,6 +3,8 @@
     "component_prose": ["subhead", "headline", "body", "description", "note", "address"],
     "enums": {
         "level": ["1", "2", "3", "4"],
+        "cta_stage": ["awareness", "consideration", "decision"],
+        "cta_variant": ["inline", "rail", "ask", "banner"],
         "variant": ["primary", "outline", "link", "soft", "ghost"],
         "columns": ["1", "2", "3", "4", "6", "12"],
         "gap": ["none", "xs", "sm", "md", "lg", "xl"],
@@ -274,6 +276,13 @@
             "container": false,
             "props": {
                 "text": { "type": "prose" }
+            }
+        },
+        "post_cta": {
+            "container": false,
+            "props": {
+                "stage": { "type": "enum", "values": "@cta_stage" },
+                "variant": { "type": "enum", "values": "@cta_variant" }
             }
         },
         "porter_intake": {

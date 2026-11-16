@@ -64,7 +64,7 @@ class PmlSnapshotBuilder
 
     /**
      * @param  list<array<string, mixed>>  $componentTree
-     * @param  array{packages?: list<array<string, mixed>>, credentials?: array<string, mixed>, testimonials?: list<array<string, mixed>>, post?: array<string, mixed>}  $moduleData
+     * @param  array{packages?: list<array<string, mixed>>, credentials?: array<string, mixed>, testimonials?: list<array<string, mixed>>, post?: array<string, mixed>, ctas?: array<string, array<string, mixed>>}  $moduleData
      * @param  array<string, callable>  $partials  the site's partial library (handle => expander)
      * @param  ?LicenseeIdentity  $identity  when given (the publish/preflight path), the s.44
      *                                       required-elements check runs on the resolved page. Null
@@ -205,6 +205,16 @@ class PmlSnapshotBuilder
             // A post's own fields (post layouts C2a): title, byline, cover, related... drawn by the post parts.
             $props = is_array($node['props'] ?? null) ? $node['props'] : [];
             $props['resolved'] = self::postFields(is_array($moduleData['post'] ?? null) ? $moduleData['post'] : []);
+            $node['props'] = $props;
+        } elseif ($primitive === 'post_cta') {
+            // A call to action from the product's CTA library (post layouts C2d): the row for this stage and
+            // variant, falling back to the stage's inline row; none = nothing drawn (the builder says it is unset).
+            $props = is_array($node['props'] ?? null) ? $node['props'] : [];
+            $ctas = is_array($moduleData['ctas'] ?? null) ? $moduleData['ctas'] : [];
+            $stage = is_string($props['stage'] ?? null) ? $props['stage'] : 'awareness';
+            $variant = is_string($props['variant'] ?? null) ? $props['variant'] : 'inline';
+            $row = $ctas["{$stage}:{$variant}"] ?? $ctas["{$stage}:inline"] ?? null;
+            $props['resolved'] = is_array($row) ? $row : [];
             $node['props'] = $props;
         }
 
