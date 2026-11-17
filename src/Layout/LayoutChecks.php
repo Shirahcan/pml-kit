@@ -65,18 +65,31 @@ final class LayoutChecks
             }
         }
 
-        // The stages climb as the reader goes down the page: never a later stage above an earlier one.
-        usort($order, static fn ($a, $b) => $a['position'] <=> $b['position']);
-        $highest = -1;
+        // The stages first appear in order as the reader goes down the page: awareness, then consideration, then
+        // decision. Only each stage's FIRST appearance counts: a small "ask us" box (consideration) after the
+        // decision call to action, then a closing decision banner, is the reference layout itself, not a mistake.
+        $first = [];
 
         foreach ($order as $cta) {
-            $rank = array_search($cta['part']['stage'], LayoutDefinition::STAGES, true);
+            $stage = $cta['part']['stage'];
 
-            if ($rank < $highest) {
-                $findings[] = self::finding('block', 'layout.cta_order', $cta['part'], "{$cta['part']['label']} comes after a later-stage call to action.", 'Order the calls to action awareness, then consideration, then decision.');
+            if (! isset($first[$stage]) || $cta['position'] < $first[$stage]['position']) {
+                $first[$stage] = $cta;
+            }
+        }
+
+        $previous = null;
+
+        foreach (LayoutDefinition::STAGES as $stage) {
+            if (! isset($first[$stage])) {
+                continue;
             }
 
-            $highest = max($highest, $rank);
+            if ($previous !== null && $first[$stage]['position'] < $previous['position']) {
+                $findings[] = self::finding('block', 'layout.cta_order', $first[$stage]['part'], "{$first[$stage]['part']['label']} comes before the {$previous['part']['stage']} call to action.", 'Order the calls to action awareness, then consideration, then decision.');
+            } else {
+                $previous = $first[$stage];
+            }
         }
 
         foreach ($layout->parts as $part) {

@@ -98,6 +98,32 @@ final class LayoutDefinition
         return null;
     }
 
+    /**
+     * A fresh document for this layout: each part's skeleton in order, a repeating part as many times as its minimum
+     * (at least once). A part that sits inside another is already in that part's skeleton, so it is skipped here.
+     * What "New post" starts from, so a new post follows its layout before anyone types a word.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function starter(): array
+    {
+        $nodes = [];
+
+        foreach ($this->parts as $part) {
+            if (isset($part['inside']) || $part['skeleton'] === []) {
+                continue;
+            }
+
+            $times = $part['kind'] === 'repeat' ? max(1, $part['min']) : 1;
+
+            for ($i = 0; $i < $times; $i++) {
+                array_push($nodes, ...$part['skeleton']);
+            }
+        }
+
+        return $nodes;
+    }
+
     /** The definition in one canonical form: the same layout always writes the same array. */
     public function toArray(): array
     {

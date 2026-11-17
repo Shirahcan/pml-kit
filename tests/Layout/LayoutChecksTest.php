@@ -91,8 +91,22 @@ class LayoutChecksTest extends TestCase
         $result = LayoutChecks::check($this->layout(), $post);
 
         $this->assertFalse($result['mayPublish']);
-        $this->assertContains('layout.cta_order:cta-consideration', $this->rules($result, 'block'));
-        $this->assertContains('layout.cta_order:cta-awareness', $this->rules($result, 'block'));
+        // The first consideration and the first decision both appear before the first awareness.
+        $this->assertSame(['layout.cta_order:cta-consideration', 'layout.cta_order:cta-decision'], $this->rules($result, 'block'));
+    }
+
+    public function test_a_later_ask_box_after_the_decision_call_to_action_is_the_reference_layout_not_a_mistake(): void
+    {
+        $layout = LayoutDefinition::fromArray(['key' => 'l', 'name' => 'L', 'kind' => 'post', 'parts' => [
+            ['key' => 'a', 'label' => 'Awareness', 'kind' => 'cta', 'stage' => 'awareness'],
+            ['key' => 'c', 'label' => 'Consideration', 'kind' => 'cta', 'stage' => 'consideration'],
+            ['key' => 'd', 'label' => 'Decision', 'kind' => 'cta', 'stage' => 'decision'],
+            ['key' => 'ask', 'label' => 'Ask us', 'kind' => 'cta', 'stage' => 'consideration', 'variant' => 'ask'],
+            ['key' => 'banner', 'label' => 'Closing banner', 'kind' => 'cta', 'stage' => 'decision', 'variant' => 'banner'],
+        ]]);
+        $post = [self::marked('a'), self::marked('c'), self::marked('d'), self::marked('ask'), self::marked('banner')];
+
+        $this->assertTrue(LayoutChecks::check($layout, $post)['mayPublish']);
     }
 
     public function test_a_verify_marker_anywhere_blocks_with_its_words(): void

@@ -1,0 +1,116 @@
+{
+    "key": "full-guide",
+    "name": "Full guide",
+    "kind": "post",
+    "allowed_formats": ["explainer", "how-to", "document-checklist", "comparison", "qa-roundup"],
+    "parts": [
+        {
+            "key": "header", "label": "Post header", "kind": "bound", "locked": true,
+            "skeleton": [{ "primitive": "post_header", "part": "header", "props": {} }]
+        },
+        {
+            "key": "cover", "label": "Cover photo", "kind": "bound",
+            "skeleton": [{ "primitive": "post_cover", "part": "cover", "props": { "ratio": "16:9" } }]
+        },
+        {
+            "key": "contents", "label": "On this page", "kind": "bound", "required": false,
+            "skeleton": [{ "primitive": "toc", "part": "contents", "props": { "title": "On this page" } }]
+        },
+        {
+            "key": "hook", "label": "Hook", "kind": "fill", "rules": { "words": { "min": 150, "max": 200 } },
+            "skeleton": [{ "primitive": "p", "part": "hook", "children": [{ "primitive": "text", "props": { "value": "[Hook: why this matters to the reader right now, the rule or change that applies, and what this guide covers. 150 to 200 words, the main topic named in the first 100.]" } }] }]
+        },
+        {
+            "key": "cta-awareness", "label": "Call to action: awareness", "kind": "cta", "stage": "awareness", "locked": true,
+            "skeleton": [{ "primitive": "post_cta", "part": "cta-awareness", "props": { "stage": "awareness", "variant": "inline" } }]
+        },
+        {
+            "key": "section", "label": "Question section", "kind": "repeat", "min": 4,
+            "skeleton": [{
+                "primitive": "box", "part": "section", "props": {},
+                "children": [
+                    { "primitive": "heading", "props": { "text": "[A question readers ask, as they would ask it]", "level": "2" } },
+                    { "primitive": "callout", "part": "answer", "props": { "title": "Short answer" }, "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The direct answer, in under 50 words.]" } }] }] },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The full answer in short paragraphs. Every figure links to its official source; a figure you cannot confirm is marked VERIFY, in square brackets, so publishing stops until it is checked.]" } }] }
+                ]
+            }]
+        },
+        {
+            "key": "answer", "label": "Short answer", "kind": "fill", "rules": { "words": { "max": 50 } }
+        },
+        {
+            "key": "data", "label": "Data table", "kind": "repeat", "min": 2,
+            "skeleton": [{
+                "primitive": "box", "part": "data", "props": {},
+                "children": [
+                    { "primitive": "table", "props": { "caption": "[Table: what it compares, and as of when]" }, "children": [
+                        { "primitive": "row", "props": {}, "children": [
+                            { "primitive": "cell", "props": { "header": true }, "children": [{ "primitive": "text", "props": { "value": "[Column]" } }] },
+                            { "primitive": "cell", "props": { "header": true }, "children": [{ "primitive": "text", "props": { "value": "[Column]" } }] }
+                        ] },
+                        { "primitive": "row", "props": {}, "children": [
+                            { "primitive": "cell", "props": {}, "children": [{ "primitive": "text", "props": { "value": "[Value]" } }] },
+                            { "primitive": "cell", "props": {}, "children": [{ "primitive": "text", "props": { "value": "[Value]" } }] }
+                        ] }
+                    ] },
+                    { "primitive": "sources", "props": { "title": "Source" }, "children": [
+                        { "primitive": "source", "props": { "title": "[The official page this table comes from]", "publisher": "[IRCC, canada.ca]" } }
+                    ] }
+                ]
+            }]
+        },
+        {
+            "key": "cta-consideration", "label": "Call to action: consideration", "kind": "cta", "stage": "consideration", "moves_within": "section",
+            "skeleton": [{ "primitive": "post_cta", "part": "cta-consideration", "props": { "stage": "consideration", "variant": "inline" } }]
+        },
+        {
+            "key": "help", "label": "How Portify can help", "kind": "fill", "rules": { "words": { "min": 100, "max": 200 } },
+            "skeleton": [{
+                "primitive": "box", "part": "help", "props": {},
+                "children": [
+                    { "primitive": "heading", "props": { "text": "How Portify can help", "level": "2" } },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[About 150 words on how Portify helps with this topic: matching with a licensed, verified professional, seeing fees before you start, documents and deadlines in one place. Never a promise of approval; anything not live yet says coming soon.]" } }] }
+                ]
+            }]
+        },
+        {
+            "key": "story", "label": "Client story", "kind": "record", "required": false
+        },
+        {
+            "key": "cta-decision", "label": "Call to action: decision", "kind": "cta", "stage": "decision", "locked": true,
+            "skeleton": [{ "primitive": "post_cta", "part": "cta-decision", "props": { "stage": "decision", "variant": "inline" } }]
+        },
+        {
+            "key": "faq", "label": "Frequently asked questions", "kind": "fill",
+            "skeleton": [{
+                "primitive": "faq", "part": "faq", "props": { "heading": "Frequently asked questions" },
+                "children": [
+                    { "primitive": "faq_item", "part": "faq-item", "props": { "question": "[A question readers ask]" }, "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The answer, 40 to 60 words.]" } }] }] },
+                    { "primitive": "faq_item", "part": "faq-item", "props": { "question": "[A question readers ask]" }, "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The answer, 40 to 60 words.]" } }] }] },
+                    { "primitive": "faq_item", "part": "faq-item", "props": { "question": "[A question readers ask]" }, "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The answer, 40 to 60 words.]" } }] }] },
+                    { "primitive": "faq_item", "part": "faq-item", "props": { "question": "[A question readers ask]" }, "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The answer, 40 to 60 words.]" } }] }] },
+                    { "primitive": "faq_item", "part": "faq-item", "props": { "question": "[A question readers ask]" }, "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The answer, 40 to 60 words.]" } }] }] }
+                ]
+            }]
+        },
+        {
+            "key": "faq-item", "label": "FAQ", "kind": "repeat", "min": 5, "max": 5, "inside": "faq", "rules": { "words": { "min": 40, "max": 75 } }
+        },
+        {
+            "key": "ask", "label": "Ask us by email", "kind": "cta", "stage": "consideration", "variant": "ask", "required": false,
+            "skeleton": [{ "primitive": "post_cta", "part": "ask", "props": { "stage": "consideration", "variant": "ask" } }]
+        },
+        {
+            "key": "closing", "label": "Closing banner", "kind": "cta", "stage": "decision", "variant": "banner", "locked": true,
+            "skeleton": [{ "primitive": "post_cta", "part": "closing", "props": { "stage": "decision", "variant": "banner" } }]
+        },
+        {
+            "key": "disclaimer", "label": "Disclaimer", "kind": "bound", "locked": true,
+            "skeleton": [{ "primitive": "post_disclaimer", "part": "disclaimer", "props": { "text": "This guide is general information, not legal advice. Immigration rules, fees and draw cutoffs change often: check the official sources linked above, or speak with a licensed immigration consultant about your own case." } }]
+        },
+        {
+            "key": "related", "label": "Related guides", "kind": "bound",
+            "skeleton": [{ "primitive": "post_related", "part": "related", "props": { "heading": "Related guides" } }]
+        }
+    ]
+}
