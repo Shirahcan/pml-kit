@@ -4,6 +4,7 @@ namespace Shirahcan\Pml\Tests\Email;
 
 use PHPUnit\Framework\TestCase;
 use Shirahcan\Pml\Email\EmailBrand;
+use Shirahcan\Pml\Email\EmailHead;
 use Shirahcan\Pml\Email\EmailRenderer;
 
 /**
@@ -75,6 +76,72 @@ final class EmailRendererTest extends TestCase
         $this->assertStringContainsString('display:none;max-height:0', $html, 'the preheader is hidden in the email itself');
         $this->assertStringContainsString('<!--[if mso]><table role="presentation" width="600"', $html, 'Outlook gets a fixed width');
         $this->assertStringContainsString('.pml-email-col{display:block!important', $html, 'columns stack on a phone');
+    }
+
+    /** A brand with only its accent set (the rest falls back to the default palette). */
+    private function brandWithAccent(string $accent): EmailBrand
+    {
+        return new class($accent) implements EmailBrand
+        {
+            public function __construct(private readonly string $accent) {}
+
+            public function productName(): string
+            {
+                return 'Portify';
+            }
+
+            public function colors(): array
+            {
+                return ['accent' => $this->accent];
+            }
+
+            public function fontStack(): string
+            {
+                return 'Arial, sans-serif';
+            }
+        };
+    }
+
+    /** The CSS inside the dark-mode media query. */
+    private function darkRules(string $html): string
+    {
+        $this->assertSame(1, preg_match('/@media \(prefers-color-scheme:dark\)\{(.*?)\}<\/style>/s', $html, $m), 'the email has a dark-mode block');
+
+        return $m[1];
+    }
+
+    public function test_a_dark_accent_button_gains_a_light_edge_in_dark_mode_a_bright_one_keeps_its_own(): void
+    {
+        // Portify's real accent: 1.5:1 against the dark card, so the button's shape would all but vanish (WCAG 1.4.11 wants 3:1).
+        $navy = '#1E3A5F';
+        $this->assertLessThan(3.0, \Shirahcan\Pml\Theme::contrastRatio($navy, EmailHead::DARK_CARD));
+        $dark = $this->darkRules((new EmailRenderer())->render(self::DESIGN, $this->brandWithAccent($navy), [], self::HEADER, self::FOOTER));
+        $this->assertStringContainsString('.pml-email-button{border-color:'.EmailHead::DARK_EDGE.'!important}', $dark);
+
+        // An accent that already reads on the dark card is left as the brand chose.
+        $bright = '#6366F1';
+        $this->assertGreaterThanOrEqual(3.0, \Shirahcan\Pml\Theme::contrastRatio($bright, EmailHead::DARK_CARD));
+        $dark = $this->darkRules((new EmailRenderer())->render(self::DESIGN, $this->brandWithAccent($bright), [], self::HEADER, self::FOOTER));
+        $this->assertStringNotContainsString('.pml-email-button{border-color:', $dark);
+
+        // The edge and the light words are measured, not eyeballed.
+        $this->assertGreaterThanOrEqual(3.0, \Shirahcan\Pml\Theme::contrastRatio(EmailHead::DARK_EDGE, EmailHead::DARK_CARD));
+        $this->assertGreaterThanOrEqual(4.5, \Shirahcan\Pml\Theme::contrastRatio(EmailHead::DARK_LINK, EmailHead::DARK_CARD));
+    }
+
+    public function test_a_secondary_button_never_turns_white_on_white_in_dark_mode(): void
+    {
+        $design = [['primitive' => 'button', 'props' => ['label' => 'Read the guide', 'href' => 'https://example.com', 'variant' => 'secondary']]];
+        $html = (new EmailRenderer())->render($design, $this->brandWithAccent('#1E3A5F'), [], self::HEADER, self::FOOTER);
+
+        $this->assertStringContainsString('class="pml-email-button pml-email-button-secondary"', $html);
+        $dark = $this->darkRules($html);
+        // Declared AFTER the primary rule with the same specificity, so the secondary's light words win over on-accent white.
+        $primaryAt = strpos($dark, '.pml-email-button,.pml-email-button a{color:');
+        $secondaryAt = strpos($dark, '.pml-email-button-secondary,.pml-email-button-secondary a{color:'.EmailHead::DARK_LINK.'!important}');
+        $this->assertNotFalse($secondaryAt);
+        $this->assertGreaterThan($primaryAt, $secondaryAt);
+        $this->assertStringContainsString('.pml-email-button-secondary{background-color:'.EmailHead::DARK_CARD.'!important', $dark);
     }
 
     public function test_the_plain_text_part_carries_every_word_and_every_address(): void

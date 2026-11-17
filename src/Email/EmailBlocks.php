@@ -120,7 +120,7 @@ final class EmailBlocks
         $a = '<a href="'.self::h((string) ($props['href'] ?? '')).'" style="display:inline-block;padding:12px 24px;'.$font.';font-size:16px;font-weight:600;color:'.$fg.';text-decoration:none;border-radius:8px">'.self::h((string) ($props['label'] ?? '')).'</a>';
 
         return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px"><tr><td align="'.$align.'">'
-            .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="pml-email-button" bgcolor="'.$bg.'" style="border-radius:8px;background-color:'.$bg.';border:1px solid '.$this->style->color('accent').'">'.$a.'</td></tr></table>'
+            .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="pml-email-button'.($primary ? '' : ' pml-email-button-secondary').'" bgcolor="'.$bg.'" style="border-radius:8px;background-color:'.$bg.';border:1px solid '.$this->style->color('accent').'">'.$a.'</td></tr></table>'
             .'</td></tr></table>';
     }
 
