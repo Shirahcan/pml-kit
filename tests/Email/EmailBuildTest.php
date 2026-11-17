@@ -106,6 +106,28 @@ final class EmailBuildTest extends TestCase
         $this->assertSame('Fine now', $result['nodes'][1]['props']['text'] ?? $result['nodes'][0]['props']['text'] ?? null);
     }
 
+    public function test_an_element_the_answer_did_not_change_keeps_its_stored_form_so_only_real_edits_differ(): void
+    {
+        // As growth-service stores a template's starter: empty props arrays and the level as a string.
+        $stored = [
+            ['primitive' => 'box', 'uid' => 'xone01abc', 'part' => 'hero', 'props' => [], 'children' => [
+                ['primitive' => 'heading', 'uid' => 'hone01abc', 'props' => ['text' => '[One headline]', 'level' => '1']],
+            ]],
+            ['primitive' => 'heading', 'uid' => 'htwo01abc', 'props' => ['text' => 'This week at a glance', 'level' => '2']],
+        ];
+
+        $result = (new EmailBuild)->run($stored, null, fn () => '<box uid="xone01abc" part="hero"><heading uid="hone01abc" text="Draw 330: 2,500 invitations" level="1"/></box>'
+            ."\n".'<heading uid="htwo01abc" text="This week at a glance" level="2"/>'."\n".EmailBuild::REPLY_MARK."\nI wrote the headline.");
+
+        $this->assertTrue($result['changed']);
+        // Untouched elements are exactly as stored (comparison only; the stored shape is never rewritten).
+        $this->assertSame($stored[1], $result['nodes'][1]);
+        $this->assertSame([], $result['nodes'][0]['props']);
+        $this->assertSame('hero', $result['nodes'][0]['part']);
+        // The one real edit.
+        $this->assertSame('Draw 330: 2,500 invitations', $result['nodes'][0]['children'][0]['props']['text']);
+    }
+
     public function test_the_spec_is_the_email_profile_never_restated(): void
     {
         $spec = EmailSpec::describe();

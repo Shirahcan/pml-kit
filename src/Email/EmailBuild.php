@@ -111,7 +111,8 @@ final class EmailBuild
             return ['nodes' => null, 'node' => null, 'problems' => [self::UNREADABLE], 'reply' => $reply, 'notes' => $notes];
         }
 
-        $parsed = self::withoutNotes($parsed);
+        // An element the answer did not really change keeps its original form, so only real edits read as changes.
+        $parsed = self::keepUnchanged(self::withoutNotes($parsed), $aimed !== null ? [$aimed] : $current);
         if ($parsed === []) {
             return ['nodes' => null, 'node' => null, 'problems' => [self::UNREADABLE], 'reply' => $reply, 'notes' => $notes];
         }
@@ -286,6 +287,90 @@ final class EmailBuild
         $nodes[$i]['children'] = self::replaceAt((array) ($nodes[$i]['children'] ?? []), array_slice($path, 1), $replacement);
 
         return array_values($nodes);
+    }
+
+    /**
+     * Each element the answer did not really change keeps its ORIGINAL form, found by uid (Loop 1, 2026-11-18: a stored
+     * design writes `props: []` and `level: "1"` where parsed PML has no props and `level: 1`, so a one-heading ask read
+     * as "Changed 19 elements"). Only the element's own fields are compared; its children are taken from the answer.
+     *
+     * @param  list<array<string, mixed>>  $nodes  the answer, parsed
+     * @param  list<array<string, mixed>>  $original  the design (or the aimed block) as it was
+     * @return list<array<string, mixed>>
+     */
+    private static function keepUnchanged(array $nodes, array $original): array
+    {
+        $byUid = [];
+        $index = function (array $list) use (&$index, &$byUid): void {
+            foreach ($list as $node) {
+                if (is_array($node) && is_string($node['uid'] ?? null)) {
+                    $byUid[$node['uid']] = $node;
+                }
+                if (is_array($node) && is_array($node['children'] ?? null)) {
+                    $index($node['children']);
+                }
+            }
+        };
+        $index($original);
+
+        return self::keepFrom($nodes, $byUid);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $nodes
+     * @param  array<string, array<string, mixed>>  $byUid
+     * @return list<array<string, mixed>>
+     */
+    private static function keepFrom(array $nodes, array $byUid): array
+    {
+        $out = [];
+        foreach ($nodes as $node) {
+            if (is_array($node['children'] ?? null)) {
+                $node['children'] = self::keepFrom($node['children'], $byUid);
+            }
+            $was = is_string($node['uid'] ?? null) ? ($byUid[$node['uid']] ?? null) : null;
+            if ($was !== null && self::ownFields($node) == self::ownFields($was)) {
+                // The original, in its own key order, with the answer's children (themselves kept where unchanged).
+                $kept = [];
+                foreach ($was as $key => $value) {
+                    $kept[$key] = $key === 'children' ? ($node['children'] ?? $value) : $value;
+                }
+                if (! array_key_exists('children', $was) && array_key_exists('children', $node)) {
+                    $kept['children'] = $node['children'];
+                }
+                $node = $kept;
+            }
+            $out[] = $node;
+        }
+
+        return $out;
+    }
+
+    /** An element's own fields, normalised: no empty props or style, numbers as numbers, keys in order. */
+    private static function ownFields(array $node): array
+    {
+        unset($node['children']);
+        foreach (['props', 'style'] as $key) {
+            if (array_key_exists($key, $node) && $node[$key] === []) {
+                unset($node[$key]);
+            }
+        }
+        array_walk_recursive($node, function (&$value): void {
+            if (is_string($value) && is_numeric($value)) {
+                $value += 0;
+            }
+        });
+
+        return self::sorted($node);
+    }
+
+    private static function sorted(array $value): array
+    {
+        if (! array_is_list($value)) {
+            ksort($value);
+        }
+
+        return array_map(fn ($item) => is_array($item) ? self::sorted($item) : $item, $value);
     }
 
     private static function canonical(array $nodes): string
