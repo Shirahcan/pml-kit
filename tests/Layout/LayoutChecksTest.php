@@ -156,6 +156,23 @@ class LayoutChecksTest extends TestCase
         $this->assertSame(['layout.outside_range:data'], $this->rules(LayoutChecks::check($layout, $above), 'warn'));
     }
 
+    public function test_a_purpose_note_takes_no_place_on_the_page(): void
+    {
+        // 0.27.2: the Classic starter puts the CTA's purpose note in front of it, and the note made the CTA read as
+        // NOT right after the last section.
+        $note = ['comment' => 'Purpose: the consideration call to action, after the question sections.'];
+        $layout = LayoutDefinition::fromArray([
+            'key' => 'classic', 'name' => 'Classic', 'kind' => 'post',
+            'parts' => [
+                ['key' => 'section', 'label' => 'Question section', 'kind' => 'repeat', 'min' => 2, 'skeleton' => [$note, ['primitive' => 'heading', 'props' => ['text' => 'Who can apply?', 'level' => 2]]]],
+                ['key' => 'cta-consideration', 'label' => 'Consideration call to action', 'kind' => 'cta', 'stage' => 'consideration', 'moves_within' => 'section', 'starts_after' => 4, 'skeleton' => [$note, ['primitive' => 'post_cta', 'props' => ['stage' => 'consideration']]]],
+            ],
+        ]);
+
+        $starter = $layout->starter();
+        $this->assertSame([], array_values(array_filter(LayoutChecks::check($layout, $starter)['findings'], static fn ($f) => str_contains($f['rule'], 'outside'))));
+    }
+
     public function test_a_moving_part_says_where_it_starts_and_only_a_moving_part_may(): void
     {
         $part = static fn (array $extra) => LayoutDefinition::fromArray(['key' => 'x', 'name' => 'X', 'kind' => 'post', 'parts' => [

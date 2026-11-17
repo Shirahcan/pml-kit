@@ -139,7 +139,9 @@ final class LayoutChecks
     private static function collect(array $nodes, array $ancestors, array &$found, array &$counter = [0]): void
     {
         foreach ($nodes as $node) {
-            if (! is_array($node)) {
+            // A purpose note is not part of the page: it takes no position, so a part right after a note is right after
+            // the part before it (0.27.2: the Classic starter's CTA, its note in front, read "outside Question section").
+            if (! is_array($node) || PmlParser::isCommentNode($node)) {
                 continue;
             }
 
