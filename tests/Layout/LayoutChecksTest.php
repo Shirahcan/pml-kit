@@ -156,6 +156,32 @@ class LayoutChecksTest extends TestCase
         $this->assertSame(['layout.outside_range:data'], $this->rules(LayoutChecks::check($layout, $above), 'warn'));
     }
 
+    public function test_a_figure_to_check_is_a_note_that_blocks_until_it_is_removed(): void
+    {
+        $post = $this->complete();
+        // Before the hook (the part of the next node), and inside a question section (the part it sits in).
+        array_splice($post, 1, 0, [['comment' => 'VERIFY: the $85 processing fee (IRCC fee list)']]);
+        $post[4]['children'][] = ['comment' => 'verify: biometrics cost $85 per person'];
+        // A purpose note that only MENTIONS checking is not a figure to check.
+        $post[] = ['comment' => 'Purpose: every figure you cannot confirm becomes a VERIFY note.'];
+
+        $result = LayoutChecks::check($this->layout(), $post);
+        $notes = array_values(array_filter($result['findings'], static fn ($f) => $f['rule'] === 'layout.verify_note'));
+
+        $this->assertFalse($result['mayPublish']);
+        $this->assertSame(['hook', 'section'], array_column($notes, 'part'));
+        $this->assertSame('Check this and remove the note: VERIFY: the $85 processing fee (IRCC fee list)', $notes[0]['message']);
+        $this->assertSame('block', $notes[1]['severity']);
+
+        $settled = array_values(array_filter($post, static fn ($n) => ! isset($n['comment']) || ! str_starts_with(strtoupper($n['comment']), 'VERIFY')));
+        unset($settled[3]['children'][1]);
+        $this->assertTrue(LayoutChecks::check($this->layout(), $settled)['mayPublish'], 'removing the notes is how a figure is settled');
+
+        $old = $this->complete();
+        $old[1] = self::marked('hook', [self::text('The fee is [VERIFY: $85].')]);
+        $this->assertSame(['layout.verify_marker'], array_values(array_unique(array_column(array_filter(LayoutChecks::check($this->layout(), $old)['findings'], static fn ($f) => $f['severity'] === 'block'), 'rule'))), 'an old inline mark still blocks');
+    }
+
     public function test_a_purpose_note_takes_no_place_on_the_page(): void
     {
         // 0.27.2: the Classic starter puts the CTA's purpose note in front of it, and the note made the CTA read as

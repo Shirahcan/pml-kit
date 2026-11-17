@@ -9,7 +9,8 @@ use Shirahcan\Pml\PmlParser;
  *
  * Deterministic, no AI. BLOCKS publishing only for structure: a required part missing, a repeating part outside its
  * count (the FAQs: exactly the layout's number), the calls to action out of stage order (awareness, consideration,
- * decision), a `[VERIFY` marker left anywhere, or a part still holding its template's bracketed example words
+ * decision), a `[VERIFY` marker left anywhere (old posts), a note starting "VERIFY" (`layout.verify_note`, 0.27.3: how
+ * a figure to check is written now), or a part still holding its template's bracketed example words
  * (`layout.unfilled`, 0.27.0: a post must never publish reading "[The question the post answers]"). Everything else (word and character counts, a call to action
  * outside the part it may move in) WARNS and never blocks.
  *
@@ -124,6 +125,17 @@ final class LayoutChecks
                     $findings[] = self::finding('warn', $rule, $part, "{$part['label']} sits outside {$label}.", "Move it between the parts of {$label}, or right after the last one.");
                 }
             }
+        }
+
+        // A figure to check, written as a note (0.27.3, owner 2026-11-17: "[VERIFY:...] placeholders ... should be surfaced
+        // as visible PML comments", so nobody has to dig marks out of the words). Blocks until the note is deleted.
+        foreach (self::verifyNotes($nodes) as [$note, $partKey]) {
+            $findings[] = [
+                'source' => 'layout', 'severity' => 'block', 'rule' => 'layout.verify_note',
+                'message' => "Check this and remove the note: {$note}", 'excerpt' => $note,
+                'suggestion' => 'Check the figure against its official source, correct the words if needed, then remove the note.',
+                'part' => $partKey,
+            ];
         }
 
         foreach (self::markers($nodes, $fields) as $excerpt) {
@@ -272,6 +284,47 @@ final class LayoutChecks
         foreach ((array) ($node['children'] ?? []) as $child) {
             if (is_array($child)) {
                 array_push($out, ...self::words($child));
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Every note that starts with "VERIFY" (any case, any depth), with the part it is about: the part of the next node
+     * that is not a note, else the part it sits inside.
+     *
+     * @return list<array{0: string, 1: ?string}>
+     */
+    private static function verifyNotes(array $nodes, ?string $inside = null): array
+    {
+        $out = [];
+        $list = array_values($nodes);
+
+        foreach ($list as $i => $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+
+            if (PmlParser::isCommentNode($node)) {
+                $text = trim((string) $node['comment']);
+                if (stripos($text, 'VERIFY') === 0) {
+                    $next = null;
+                    for ($j = $i + 1; $j < count($list); $j++) {
+                        if (is_array($list[$j]) && ! PmlParser::isCommentNode($list[$j])) {
+                            $next = $list[$j];
+                            break;
+                        }
+                    }
+                    $part = is_string($next['part'] ?? null) ? $next['part'] : $inside;
+                    $out[] = [$text, $part];
+                }
+
+                continue;
+            }
+
+            if (is_array($node['children'] ?? null)) {
+                array_push($out, ...self::verifyNotes($node['children'], is_string($node['part'] ?? null) ? $node['part'] : $inside));
             }
         }
 
