@@ -1,0 +1,123 @@
+{
+    "key": "portify-weekly",
+    "name": "Portify Weekly",
+    "kind": "email",
+    "allowed_formats": [],
+    "parts": [
+        {
+            "key": "hero", "label": "This week's big change", "kind": "fill", "locked": true, "rules": { "words": { "max": 140 } },
+            "skeleton": [{
+                "primitive": "box", "part": "hero", "props": {},
+                "children": [
+                    { "primitive": "image", "props": { "src": "{{hero_image_url}}", "alt": "[Describe the photo for readers whose mail hides pictures]" } },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "This week's big change" } }] },
+                    { "primitive": "heading", "props": { "text": "[One headline: the week's biggest change, in plain words]", "level": "1" } },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "Hi {{first_name}}," } }] },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[Two short paragraphs: what changed, and what it means for the reader. Every number links to its official source.]" } }] },
+                    { "primitive": "button", "props": { "label": "[The one thing to do next, e.g. Read the guide]", "href": "{{action_url}}", "variant": "primary" } }
+                ]
+            }]
+        },
+        {
+            "key": "at-a-glance", "label": "At a glance", "kind": "fill", "required": false,
+            "skeleton": [{
+                "primitive": "box", "part": "at-a-glance", "props": {},
+                "children": [
+                    { "primitive": "heading", "props": { "text": "This week at a glance", "level": "2" } },
+                    { "primitive": "list", "props": {}, "children": [
+                        { "primitive": "list_item", "props": { "title": "[A number from this week's news]", "text": "[What it counts, in a few words]" } },
+                        { "primitive": "list_item", "props": { "title": "[A number from this week's news]", "text": "[What it counts, in a few words]" } },
+                        { "primitive": "list_item", "props": { "title": "[A number from this week's news]", "text": "[What it counts, in a few words]" } }
+                    ] }
+                ]
+            }]
+        },
+        {
+            "key": "news", "label": "News and changes this week", "kind": "fill",
+            "skeleton": [{
+                "primitive": "box", "part": "news", "props": {},
+                "children": [
+                    { "primitive": "heading", "props": { "text": "News and changes this week", "level": "2" } },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "Everything IRCC announced, in plain English." } }] },
+                    {
+                        "primitive": "box", "part": "news-item", "props": {},
+                        "children": [
+                            { "primitive": "p", "children": [{ "primitive": "small", "children": [{ "primitive": "text", "props": { "value": "[Date] · [Topic]" } }] }] },
+                            { "primitive": "heading", "props": { "text": "[What changed, in a short line]", "level": "3" } },
+                            { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[The change in two or three sentences, with dates.]" } }] },
+                            { "primitive": "p", "children": [{ "primitive": "strong", "children": [{ "primitive": "text", "props": { "value": "What it means for you: " } }] }, { "primitive": "text", "props": { "value": "[One or two sentences.]" } }] },
+                            { "primitive": "p", "children": [{ "primitive": "link", "props": { "href": "https://www.canada.ca/en/immigration-refugees-citizenship/news.html" }, "children": [{ "primitive": "text", "props": { "value": "[Source: the official announcement]" } }] }] }
+                        ]
+                    }
+                ]
+            }]
+        },
+        {
+            "key": "news-item", "label": "News item", "kind": "repeat", "min": 1, "max": 8, "inside": "news", "rules": { "words": { "max": 120 } }
+        },
+        {
+            "key": "draws", "label": "Draw tracker", "kind": "fill", "required": false,
+            "skeleton": [{
+                "primitive": "box", "part": "draws", "props": {},
+                "children": [
+                    { "primitive": "heading", "props": { "text": "Draw tracker", "level": "2" } },
+                    { "primitive": "table", "props": { "caption": "[The latest draws, newest first]" }, "children": [
+                        { "primitive": "row", "props": {}, "children": [
+                            { "primitive": "cell", "props": { "header": true }, "children": [{ "primitive": "text", "props": { "value": "Date" } }] },
+                            { "primitive": "cell", "props": { "header": true }, "children": [{ "primitive": "text", "props": { "value": "Draw" } }] }
+                        ] },
+                        { "primitive": "row", "props": {}, "children": [
+                            { "primitive": "cell", "props": {}, "children": [{ "primitive": "text", "props": { "value": "[Date]" } }] },
+                            { "primitive": "cell", "props": {}, "children": [{ "primitive": "text", "props": { "value": "[Draw type and cutoff]" } }] }
+                        ] }
+                    ] },
+                    { "primitive": "p", "children": [{ "primitive": "link", "props": { "href": "https://www.canada.ca/en/immigration-refugees-citizenship/services/immigrate-canada/express-entry/rounds-invitations.html" }, "children": [{ "primitive": "text", "props": { "value": "Source: IRCC rounds of invitations" } }] }] }
+                ]
+            }]
+        },
+        {
+            "key": "new-from-portify", "label": "New from Portify this week", "kind": "fill",
+            "skeleton": [{
+                "primitive": "box", "part": "new-from-portify", "props": {},
+                "children": [
+                    { "primitive": "heading", "props": { "text": "New from Portify this week", "level": "2" } },
+                    { "primitive": "list", "props": {}, "children": [
+                        { "primitive": "list_item", "props": { "title": "[A post or video we published, with its link]", "text": "[One line on what it covers]" } }
+                    ] }
+                ]
+            }]
+        },
+        {
+            "key": "client-win", "label": "Client win", "kind": "record", "required": false
+        },
+        {
+            "key": "ask", "label": "Ask us", "kind": "cta", "stage": "consideration", "variant": "ask", "required": false,
+            "skeleton": [{
+                "primitive": "callout", "part": "ask", "props": { "title": "[Have a question about your own situation?]" },
+                "children": [{ "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[Invite a reply only when replies reach a person who answers them. Point to the right guide or a licensed consultant; never answer a case question here.]" } }] }]
+            }]
+        },
+        {
+            "key": "note", "label": "Personal note and P.S.", "kind": "fill", "rules": { "words": { "max": 140 } },
+            "skeleton": [{
+                "primitive": "box", "part": "note", "props": {},
+                "children": [
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[A personal note in one or two short paragraphs, written to one reader.]" } }] },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "Talk soon," } }] },
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "{{sender_name}}, {{sender_title}}" } }] },
+                    { "primitive": "p", "children": [{ "primitive": "strong", "children": [{ "primitive": "text", "props": { "value": "P.S. " } }] }, { "primitive": "text", "props": { "value": "[One line, with a text link, never a second button.]" } }] }
+                ]
+            }]
+        },
+        {
+            "key": "decision", "label": "Decision banner", "kind": "cta", "stage": "decision", "variant": "banner", "required": false,
+            "skeleton": [{
+                "primitive": "callout", "part": "decision", "props": { "title": "[Ready for the next step?]" },
+                "children": [
+                    { "primitive": "p", "children": [{ "primitive": "text", "props": { "value": "[One line: work with a licensed immigration consultant, prices shown before you book.]" } }] },
+                    { "primitive": "p", "children": [{ "primitive": "link", "props": { "href": "{{match_url}}" }, "children": [{ "primitive": "text", "props": { "value": "[Get Matched Now]" } }] }] }
+                ]
+            }]
+        }
+    ]
+}
