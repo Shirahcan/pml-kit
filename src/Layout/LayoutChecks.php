@@ -132,7 +132,9 @@ final class LayoutChecks
         foreach (self::verifyNotes($nodes) as [$note, $partKey]) {
             $findings[] = [
                 'source' => 'layout', 'severity' => 'block', 'rule' => 'layout.verify_note',
-                'message' => "Check this and remove the note: {$note}", 'excerpt' => $note,
+                // The message says it once ("VERIFY: the fee" read "...remove the note: VERIFY: the fee"); the excerpt keeps
+                // the note's own words, so the designer can find the note it is about.
+                'message' => 'Check this, then remove its note: '.(trim((string) preg_replace('/^VERIFY\s*:?\s*/i', '', $note)) ?: $note), 'excerpt' => $note,
                 'suggestion' => 'Check the figure against its official source, correct the words if needed, then remove the note.',
                 'part' => $partKey,
             ];

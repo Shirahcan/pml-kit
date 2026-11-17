@@ -170,7 +170,8 @@ class LayoutChecksTest extends TestCase
 
         $this->assertFalse($result['mayPublish']);
         $this->assertSame(['hook', 'section'], array_column($notes, 'part'));
-        $this->assertSame('Check this and remove the note: VERIFY: the $85 processing fee (IRCC fee list)', $notes[0]['message']);
+        $this->assertSame('Check this, then remove its note: the $85 processing fee (IRCC fee list)', $notes[0]['message'], 'VERIFY said once');
+        $this->assertSame('VERIFY: the $85 processing fee (IRCC fee list)', $notes[0]['excerpt'], 'the note\'s own words, to find it by');
         $this->assertSame('block', $notes[1]['severity']);
 
         $settled = array_values(array_filter($post, static fn ($n) => ! isset($n['comment']) || ! str_starts_with(strtoupper($n['comment']), 'VERIFY')));
