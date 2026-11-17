@@ -53,13 +53,38 @@ final class EmailPlainText
             'divider' => '----------',
             'spacer' => '',
             'pre' => (string) ($props['text'] ?? ''),
-            'list' => implode("\n", array_map(fn (array $li) => '- '.trim(((string) ($li['props']['title'] ?? '')).' '.((string) ($li['props']['text'] ?? '')).' '.$this->inline((array) ($li['children'] ?? []))), $kids)),
+            'list' => $this->listText($kids, ''),
             'table' => implode("\n", array_map(fn (array $row) => implode(': ', array_map(fn (array $cell) => trim($this->inline((array) ($cell['children'] ?? []))), (array) ($row['children'] ?? []))), $kids)),
             'callout' => trim(((string) ($props['title'] ?? '')).("\n".$this->blocks($kids))),
             'rich_text' => $this->richText($props),
             'box', 'grid', 'header', 'footer', 'blockquote' => $this->blocks($kids),
             default => $this->inline([$node]),
         };
+    }
+
+    /**
+     * A list's lines: "- " and the item's words OR its inline nodes (inline children win, 0.25.0), never both, so no
+     * word is read twice. A nested list reads as indented lines under its item ("  - ").
+     *
+     * @param  list<mixed>  $items
+     */
+    private function listText(array $items, string $indent): string
+    {
+        $lines = [];
+        foreach ($items as $li) {
+            if (! is_array($li)) {
+                continue;
+            }
+            [$inline, $sub] = EmailBlocks::itemParts((array) ($li['children'] ?? []));
+            // Inline words after a bold label start after its separating space (as in the HTML); words only, as before.
+            $words = $inline !== [] ? ltrim($this->inline($inline), ' ') : (string) ($li['props']['text'] ?? '');
+            $lines[] = $indent.'- '.trim(((string) ($li['props']['title'] ?? '')).' '.$words);
+            if ($sub !== null) {
+                $lines[] = $this->listText((array) ($sub['children'] ?? []), $indent.'  ');
+            }
+        }
+
+        return implode("\n", $lines);
     }
 
     /** A rich text field's words; a link keeps its address, "words (https://...)", as everywhere in the text part. */

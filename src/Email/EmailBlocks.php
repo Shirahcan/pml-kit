@@ -136,18 +136,56 @@ final class EmailBlocks
             .'<td class="pml-email-box" style="padding:14px 16px;background-color:'.$this->style->color('surface').';border-left:4px solid '.$edge.';border-radius:8px">'.$inner.'</td></tr></table>';
     }
 
-    private function listBlock(array $props, array $kids, string $font): string
+    /**
+     * A list item is words (`props.text`) OR, when it carries bold, italic or a link, a paragraph's inline word nodes
+     * (`children`, 0.25.0), drawn exactly as a paragraph draws them, so a link looks and recolours in dark mode like a
+     * paragraph's link. Inline children win when present. A bold opening label stays `props.title`; the words after it
+     * start after its separating space. After the words, at most one nested `list` (two levels in all) is drawn inside
+     * the item, indented under it. An item of words only is drawn byte for byte as before.
+     */
+    private function listBlock(array $props, array $kids, string $font, bool $nested = false): string
     {
         $tag = ($props['type'] ?? 'bullet') === 'numbered' ? 'ol' : 'ul';
         $items = implode('', array_map(function (array $k) use ($font) {
             $p = (array) ($k['props'] ?? []);
             $title = trim((string) ($p['title'] ?? ''));
+            [$inline, $sub] = self::itemParts((array) ($k['children'] ?? []));
+            $words = $inline !== [] ? $this->inlines($inline) : self::h((string) ($p['text'] ?? ''));
+            if ($inline !== [] && $title !== '') {
+                $words = ltrim($words, ' ');
+            }
+            $under = $sub !== null ? $this->listBlock((array) ($sub['props'] ?? []), (array) ($sub['children'] ?? []), $font, true) : '';
 
             return '<li style="margin:0 0 6px;'.$font.';font-size:16px;line-height:1.6;color:'.$this->style->color('text').'">'
-                .($title !== '' ? '<strong>'.self::h($title).'</strong> ' : '').self::h((string) ($p['text'] ?? '')).$this->inlines((array) ($k['children'] ?? [])).'</li>';
+                .($title !== '' ? '<strong>'.self::h($title).'</strong> ' : '').$words.$under.'</li>';
         }, $kids));
 
-        return '<'.$tag.' style="margin:0 0 14px;padding-left:22px">'.$items.'</'.$tag.'>';
+        // A nested list sits tight under its item's words; a top-level list keeps its paragraph spacing.
+        return '<'.$tag.' style="margin:'.($nested ? '6px 0 0' : '0 0 14px').';padding-left:22px">'.$items.'</'.$tag.'>';
+    }
+
+    /**
+     * A list item's children split into its inline words and its one nested list (the first `list` among them).
+     *
+     * @param  list<mixed>  $children
+     * @return array{0: list<array<string, mixed>>, 1: array<string, mixed>|null}
+     */
+    public static function itemParts(array $children): array
+    {
+        $inline = [];
+        $sub = null;
+        foreach ($children as $child) {
+            if (! is_array($child)) {
+                continue;
+            }
+            if (($child['primitive'] ?? '') === 'list') {
+                $sub ??= $child;
+            } else {
+                $inline[] = $child;
+            }
+        }
+
+        return [$inline, $sub];
     }
 
     private function table(array $rows, string $font): string

@@ -167,8 +167,16 @@ final class PmlToSemantic
             }
             $p = is_array($item['props'] ?? null) ? $item['props'] : [];
             $title = trim((string) ($p['title'] ?? ''));
-            $text = (string) ($p['text'] ?? '');
-            $items .= '<li><p>'.($title !== '' ? '<strong>'.self::text($title).'</strong> ' : '').self::text($text).'</p></li>';
+            // An item with marks or links carries a paragraph's inline nodes (0.25.0); they keep their marks and links
+            // here, so the round trip semantic -> PML -> semantic holds. Words only: exactly as before.
+            // After the words, at most one nested list (two levels in all), written inside the item after its paragraph.
+            [$inline, $sub] = EmailBlocks::itemParts(is_array($item['children'] ?? null) ? $item['children'] : []);
+            $words = $inline !== [] ? $this->inlines($inline) : self::text((string) ($p['text'] ?? ''));
+            if ($inline !== [] && $title !== '') {
+                $words = ltrim($words, ' ');
+            }
+            $under = $sub !== null ? $this->listBlock(is_array($sub['props'] ?? null) ? $sub['props'] : [], (array) ($sub['children'] ?? [])) : '';
+            $items .= '<li><p>'.($title !== '' ? '<strong>'.self::text($title).'</strong> ' : '').$words.'</p>'.$under.'</li>';
         }
 
         return '<'.$tag.'>'.$items.'</'.$tag.'>';
