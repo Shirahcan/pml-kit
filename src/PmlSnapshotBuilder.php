@@ -262,8 +262,15 @@ class PmlSnapshotBuilder
         return $out;
     }
 
-    /** The parts that draw a post's own fields (post layouts C2a). */
-    public const POST_PARTS = ['post_header', 'post_cover', 'post_related', 'post_disclaimer'];
+    /**
+     * The parts that draw a post's own fields (post layouts C2a). Since 0.26.0 (T1a, owner 2026-11-17: "the template
+     * should be properly mirrored") the header also comes as its own pieces: breadcrumbs, the title (the page's one
+     * h1), the line under it, the byline pieces inside `post_meta`, and the tags. `post_header` stays for older posts.
+     */
+    public const POST_PARTS = [
+        'post_header', 'post_cover', 'post_related', 'post_disclaimer',
+        'post_breadcrumbs', 'post_title', 'post_dek', 'post_author', 'post_date', 'post_read_time', 'post_reviewer', 'post_tags',
+    ];
 
     /**
      * The fields a post part may draw, never more. ⚠ "Reviewed by" is an attestation: a reviewer is kept only when
@@ -275,7 +282,9 @@ class PmlSnapshotBuilder
      */
     public static function postFields(array $post): array
     {
-        $keep = ['title', 'dek', 'category', 'tags', 'author_name', 'published_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources'];
+        // `blog_url` (the blog's own address, for breadcrumbs) and `updated_at` (when readers last saw a change, for
+        // post_date kind="updated") since 0.26.0.
+        $keep = ['title', 'dek', 'category', 'tags', 'author_name', 'published_at', 'updated_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources', 'blog_url'];
         $out = [];
 
         foreach ($keep as $field) {

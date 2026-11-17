@@ -2,6 +2,8 @@
 
 namespace Shirahcan\Pml\Layout;
 
+use Shirahcan\Pml\PmlParser;
+
 /**
  * Does a document follow its layout? (post layouts A3, owner 2026-11-16: "lock on structure only".)
  *
@@ -184,7 +186,10 @@ final class LayoutChecks
     private static function markers(array $nodes, array $fields): array
     {
         $strings = [];
-        array_walk_recursive($nodes, static function ($value) use (&$strings) {
+        // A purpose note (`<!-- ... -->`) may name a marker as an instruction ("never write a fee: write [check: ...]");
+        // no reader sees it, so it never holds a post back.
+        $read = self::withoutNotes($nodes);
+        array_walk_recursive($read, static function ($value) use (&$strings) {
             if (is_string($value)) {
                 $strings[] = $value;
             }
@@ -204,6 +209,23 @@ final class LayoutChecks
                 $out[] = trim(mb_substr($value, max(0, $at - 40), 100));
                 $offset = $at + 1;
             }
+        }
+
+        return $out;
+    }
+
+    /** @return list<mixed> the nodes with every comment node removed, at any depth */
+    private static function withoutNotes(array $nodes): array
+    {
+        $out = [];
+        foreach ($nodes as $node) {
+            if (is_array($node) && PmlParser::isCommentNode($node)) {
+                continue;
+            }
+            if (is_array($node) && is_array($node['children'] ?? null)) {
+                $node['children'] = self::withoutNotes($node['children']);
+            }
+            $out[] = $node;
         }
 
         return $out;

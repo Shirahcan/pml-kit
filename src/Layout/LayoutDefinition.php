@@ -3,6 +3,7 @@
 namespace Shirahcan\Pml\Layout;
 
 use Shirahcan\Pml\InvalidPmlException;
+use Shirahcan\Pml\PmlParser;
 use Shirahcan\Pml\PrimitiveSchema;
 
 /**
@@ -250,6 +251,16 @@ final class LayoutDefinition
         foreach ($nodes as $i => $node) {
             if (! is_array($node)) {
                 throw new InvalidPmlException('Each skeleton element is a PML element.', "{$path}.{$i}");
+            }
+
+            // A purpose note for Porter and the designer (`<!-- ... -->`, 0.26.0): kept exactly as written, never
+            // stamped with a part or validated as an element. The snapshot drops it, so no reader ever sees it.
+            if (PmlParser::isCommentNode($node)) {
+                if (! is_string($node['comment']) || trim($node['comment']) === '') {
+                    throw new InvalidPmlException('A skeleton note needs its words.', "{$path}.{$i}.comment");
+                }
+
+                continue;
             }
 
             $named = $node['part'] ?? null;
