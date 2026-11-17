@@ -25,7 +25,7 @@
         "as": ["div", "section", "article", "aside", "main", "figure", "address", "blockquote"],
         "tone": ["info", "tip", "warning", "success", "danger"],
         "depth": ["2", "3"],
-        "date_kind": ["published", "updated"],
+        "date_kind": ["published", "updated", "verified"],
         "icon": ["check-circle", "star", "heart", "globe", "briefcase", "clock", "file-text", "users", "award", "message-circle", "map-pin", "phone", "clipboard-check", "send"],
         "field_kind": ["text", "email", "tel", "textarea", "select", "checkbox", "number", "date"],
         "form_layout": ["stacked", "inline", "prompt"],
@@ -265,6 +265,23 @@
             "container": false,
             "props": {}
         },
+        "post_category": {
+            "container": false,
+            "props": {}
+        },
+        "post_badges": {
+            "container": true,
+            "children": ["post_reviewer_badge", "post_sources_badge"],
+            "props": {}
+        },
+        "post_reviewer_badge": {
+            "container": false,
+            "props": {}
+        },
+        "post_sources_badge": {
+            "container": false,
+            "props": {}
+        },
         "post_title": {
             "container": false,
             "props": {}
@@ -328,7 +345,10 @@
         "post_story": {
             "container": false,
             "props": {
-                "heading": { "type": "prose" }
+                "heading": { "type": "prose" },
+                "situation_label": { "type": "prose" },
+                "how_found_label": { "type": "prose" },
+                "outcome_label": { "type": "prose" }
             }
         },
         "porter_intake": {

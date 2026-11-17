@@ -86,7 +86,9 @@ class LayoutDefinitionTest extends TestCase
                 $this->assertSame($part['key'], $node['part']);
             }
         }
-        $this->assertTrue(\Shirahcan\Pml\Layout\LayoutChecks::check($layout, $layout->starter())['mayPublish'], 'a fresh document passes its own layout');
+        $fresh = \Shirahcan\Pml\Layout\LayoutChecks::check($layout, $layout->starter());
+        $structure = array_filter($fresh['findings'], static fn ($f) => $f['severity'] === 'block' && $f['rule'] !== 'layout.unfilled');
+        $this->assertSame([], array_values($structure), 'a fresh document has its layout\'s structure (its example words are layout.unfilled\'s, 0.27.0)');
     }
 
     #[DataProvider('mistakes')]

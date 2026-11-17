@@ -270,6 +270,8 @@ class PmlSnapshotBuilder
     public const POST_PARTS = [
         'post_header', 'post_cover', 'post_related', 'post_disclaimer',
         'post_breadcrumbs', 'post_title', 'post_dek', 'post_author', 'post_date', 'post_read_time', 'post_reviewer', 'post_tags',
+        // 0.27.0 (T2b, the reference studio): the category pill, and the trust badges row with its two badges.
+        'post_category', 'post_badges', 'post_reviewer_badge', 'post_sources_badge',
     ];
 
     /**
@@ -284,7 +286,8 @@ class PmlSnapshotBuilder
     {
         // `blog_url` (the blog's own address, for breadcrumbs) and `updated_at` (when readers last saw a change, for
         // post_date kind="updated") since 0.26.0.
-        $keep = ['title', 'dek', 'category', 'tags', 'author_name', 'published_at', 'updated_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources', 'blog_url'];
+        // `home_url` (the site's root, the first breadcrumb "Home > Blog > Category") since 0.27.0.
+        $keep = ['title', 'dek', 'category', 'tags', 'author_name', 'published_at', 'updated_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources', 'blog_url', 'home_url'];
         $out = [];
 
         foreach ($keep as $field) {
@@ -301,7 +304,35 @@ class PmlSnapshotBuilder
             $out[$field] = $value;
         }
 
+        // "Sources: canada.ca, cic.gc.ca" (post_sources_badge, 0.27.0): the distinct sites the post's sources are on,
+        // in order, without "www.". Worked out ONCE here so no drawing side parses an address.
+        $domains = self::sourceDomains(is_array($out['sources'] ?? null) ? $out['sources'] : []);
+        if ($domains !== []) {
+            $out['source_domains'] = $domains;
+        }
+
         return $out;
+    }
+
+    /**
+     * @param  list<mixed>  $sources  each `{url, label?}` (or a bare address)
+     * @return list<string>
+     */
+    public static function sourceDomains(array $sources): array
+    {
+        $out = [];
+
+        foreach ($sources as $source) {
+            $url = is_array($source) ? ($source['url'] ?? null) : $source;
+            $host = is_string($url) && preg_match('#^https?://#i', trim($url)) === 1 ? parse_url(trim($url), PHP_URL_HOST) : null;
+
+            if (is_string($host) && $host !== '') {
+                $host = strtolower((string) preg_replace('/^www\./i', '', $host));
+                $out[$host] = true;
+            }
+        }
+
+        return array_keys($out);
     }
 
     /**

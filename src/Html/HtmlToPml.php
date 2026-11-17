@@ -104,7 +104,7 @@ final class HtmlToPml
         }
 
         return match ($tag) {
-            'h1', 'h2', 'h3', 'h4', 'h5', 'h6' => [$this->heading($el)],
+            'h1', 'h2', 'h3', 'h4', 'h5', 'h6' => $this->headingAndPastedParagraph($el),
             'p' => $this->paragraph($el),
             'ul', 'ol' => [$this->listBlock($el)],
             'table' => [$this->table($el)],
@@ -115,6 +115,43 @@ final class HtmlToPml
             'tbody', 'thead', 'div', 'section' => $this->blocks($el),
             default => $this->unknown($el),
         };
+    }
+
+    /** A heading split at a line break this many words or more from its end is a paragraph pasted into it. */
+    private const PASTED_PARAGRAPH_WORDS = 9;
+
+    /**
+     * A heading, and a paragraph pasted into it after a line break (0.27.0, found on a real post:
+     * `<h2><strong>What is an LMIA? <br></strong>An LMIA is a document ...</h2>` became ONE long heading, and the break
+     * was all that kept it readable). The words after the FIRST break become their own paragraph when they run long; a
+     * short second line stays in the heading, as its author wrote it.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function headingAndPastedParagraph(DOMElement $el): array
+    {
+        $br = $el->getElementsByTagName('br')->item(0);
+        if ($br === null) {
+            return [$this->heading($el)];
+        }
+
+        $copy = $el->cloneNode(true);
+        $first = $copy instanceof DOMElement ? $copy->getElementsByTagName('br')->item(0) : null;
+        if (! $copy instanceof DOMElement || $first === null || $first->parentNode === null) {
+            return [$this->heading($el)];
+        }
+        $first->parentNode->replaceChild($copy->ownerDocument->createTextNode("\x1E"), $first);
+        [$top, $rest] = array_map('trim', explode("\x1E", $this->flatten($copy), 2) + [1 => '']);
+
+        if ($top === '' || count(preg_split('/\s+/u', $rest, -1, PREG_SPLIT_NO_EMPTY)) < self::PASTED_PARAGRAPH_WORDS) {
+            return [$this->heading($el)];
+        }
+
+        $heading = $this->heading($el);
+        $heading['props']['text'] = $top;
+        $this->notes[] = 'A paragraph was pasted inside a heading after a line break; it is its own paragraph now ("'.mb_substr($rest, 0, 60).'").';
+
+        return [$heading, ['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => $rest]]]]];
     }
 
     private function heading(DOMElement $el): array

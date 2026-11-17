@@ -42,7 +42,9 @@ class PortifyWeeklySeedTest extends TestCase
         $layout = $this->layout();
         $starter = $layout->starter();
 
-        $this->assertTrue(LayoutChecks::check($layout, $starter)['mayPublish']);
+        $fresh = LayoutChecks::check($layout, $starter);
+        $this->assertSame([], array_values(array_filter($fresh['findings'], static fn ($f) => $f['severity'] === 'block' && $f['rule'] !== 'layout.unfilled')), 'the structure of a fresh issue passes');
+        $this->assertFalse($fresh['mayPublish'], 'a fresh issue is example words, so it cannot go out until they are written (0.27.0)');
         $this->assertSame([], EmailProfile::violations($starter), 'every block uses only what mail clients show');
         $this->assertTrue(EmailProfile::hasMainButton([$starter[0]['children'][5]]), 'the hero carries the one main button');
 

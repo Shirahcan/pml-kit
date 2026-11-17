@@ -60,8 +60,11 @@ class FullGuideSeedTest extends TestCase
         $this->assertSame(['cta-awareness', 'cta-consideration', 'cta-decision', 'ask', 'closing'], array_values(array_filter($parts, static fn ($p) => in_array($p, ['cta-awareness', 'cta-consideration', 'cta-decision', 'ask', 'closing'], true))));
 
         $result = LayoutChecks::check($layout, $starter);
+        $structure = array_values(array_filter($result['findings'], static fn ($f) => $f['severity'] === 'block' && $f['rule'] !== 'layout.unfilled'));
 
-        $this->assertTrue($result['mayPublish'], 'the structure of a fresh post passes: '.json_encode(array_values(array_filter($result['findings'], static fn ($f) => $f['severity'] === 'block'))));
+        $this->assertSame([], $structure, 'the structure of a fresh post passes');
+        $this->assertFalse($result['mayPublish'], 'but a fresh post is all example words, so it cannot publish until they are written (0.27.0)');
+        $this->assertContains('[The direct answer, in under 50 words.]', array_column($result['findings'], 'excerpt'));
     }
 
     public function test_the_seed_never_writes_a_figure_or_a_story(): void

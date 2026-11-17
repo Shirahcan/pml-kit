@@ -118,6 +118,19 @@ final class HtmlToPmlTest extends TestCase
         $this->assertSame([], $page['unconverted']);
     }
 
+    public function test_a_paragraph_pasted_into_a_heading_after_a_break_becomes_its_own_paragraph(): void
+    {
+        $pasted = (new HtmlToPml())->convert('<h2><strong>What is an LMIA? <br></strong>An LMIA is a document an employer gets from ESDC before hiring a foreign worker.</h2>');
+
+        $this->assertSame(['primitive' => 'heading', 'props' => ['text' => 'What is an LMIA?', 'level' => 2]], $pasted['nodes'][0]);
+        $this->assertSame('An LMIA is a document an employer gets from ESDC before hiring a foreign worker.', $pasted['nodes'][1]['children'][0]['props']['value']);
+        $this->assertNotEmpty(array_filter($pasted['notes'], fn ($n) => str_contains($n, 'pasted inside a heading')));
+
+        $twoLines = (new HtmlToPml())->convert('<h2>Study permits<br>in 2026</h2>');
+        $this->assertCount(1, $twoLines['nodes'], 'a short second line stays in the heading');
+        $this->assertSame('Study permits in 2026', $twoLines['nodes'][0]['props']['text']);
+    }
+
     public function test_parity_catches_a_lost_word_and_a_lost_link(): void
     {
         $nodes = (new HtmlToPml())->convert(self::POST)['nodes'];

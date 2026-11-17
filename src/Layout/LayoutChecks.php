@@ -9,7 +9,8 @@ use Shirahcan\Pml\PmlParser;
  *
  * Deterministic, no AI. BLOCKS publishing only for structure: a required part missing, a repeating part outside its
  * count (the FAQs: exactly the layout's number), the calls to action out of stage order (awareness, consideration,
- * decision), or a `[VERIFY` marker left anywhere. Everything else (word and character counts, a call to action
+ * decision), a `[VERIFY` marker left anywhere, or a part still holding its template's bracketed example words
+ * (`layout.unfilled`, 0.27.0: a post must never publish reading "[The question the post answers]"). Everything else (word and character counts, a call to action
  * outside the part it may move in) WARNS and never blocks.
  *
  * Findings use the builder's preflight shape (pml-ui `DocumentFinding`: source, severity, rule, message, excerpt,
@@ -56,7 +57,14 @@ final class LayoutChecks
                 $findings[] = self::finding('block', 'layout.part_missing', $part, "{$part['label']} is missing.", "Add {$part['label']} back in its place.");
             }
 
+            $examples = self::examples($part);
+            $unfilled = [];
+
             foreach ($at as $instance) {
+                foreach (self::leftExamples($examples, $instance['node']) as $example) {
+                    $unfilled[$example] = true; // once per example per part, however many instances repeat it
+                }
+
                 foreach (self::ruleMisses($part, $instance['node']) as $miss) {
                     $findings[] = self::finding('warn', 'layout.rule', $part, $miss, null);
                 }
@@ -64,6 +72,10 @@ final class LayoutChecks
                 if ($part['kind'] === 'cta') {
                     $order[] = ['part' => $part, 'position' => $instance['position']];
                 }
+            }
+
+            foreach (array_keys($unfilled) as $example) {
+                $findings[] = ['excerpt' => $example] + self::finding('block', 'layout.unfilled', $part, "{$part['label']} still has the template's example words: \"{$example}\".", 'Write your own words in place of the bracketed example.');
             }
         }
 
@@ -160,6 +172,44 @@ final class LayoutChecks
         }
 
         return $misses;
+    }
+
+    /**
+     * The template's own example words in a part's skeleton: every bracketed run (`[The question the post answers]`) in
+     * the words a reader would read. Purpose notes are not words, and a `[VERIFY` mark is its own rule.
+     *
+     * @return list<string>
+     */
+    private static function examples(array $part): array
+    {
+        $found = [];
+
+        foreach (self::withoutNotes((array) ($part['skeleton'] ?? [])) as $node) {
+            foreach (is_array($node) ? self::words($node) : [] as $value) {
+                preg_match_all('/\[[^\[\]\n]{3,}\]/u', $value, $m);
+                foreach ($m[0] as $run) {
+                    if (stripos($run, self::MARKER) !== 0) {
+                        $found[$run] = true;
+                    }
+                }
+            }
+        }
+
+        return array_keys($found);
+    }
+
+    /**
+     * @param  list<string>  $examples
+     * @return list<string> the examples still in this instance, word for word (its purpose notes left out)
+     */
+    private static function leftExamples(array $examples, array $node): array
+    {
+        if ($examples === []) {
+            return [];
+        }
+        $text = implode("\n", self::words(['children' => self::withoutNotes([$node])]));
+
+        return array_values(array_filter($examples, static fn (string $example) => str_contains($text, $example)));
     }
 
     /** @return list<string> the words a reader reads in this node and everything inside it */
