@@ -125,6 +125,48 @@ final class PostPiecesTest extends TestCase
         $this->assertTrue(LayoutChecks::check($layout, $starter)['mayPublish'], 'a marker named inside a note never holds a post back');
     }
 
+    /** 0.26.1: a post started from a template with notes is validated on every save, so every node must pass. */
+    public function test_every_node_a_starter_returns_passes_validation_including_nested_notes(): void
+    {
+        $schema = new PrimitiveSchema(new BlockSchema());
+        $layout = LayoutDefinition::fromArray(['key' => 'classic', 'name' => 'Classic', 'kind' => 'post', 'parts' => [
+            ['key' => 'title', 'label' => 'Title', 'kind' => 'bound', 'skeleton' => [
+                ['comment' => 'Purpose: the page\'s one h1.'],
+                ['primitive' => 'post_title', 'props' => []],
+            ]],
+            ['key' => 'body', 'label' => 'Body', 'kind' => 'fill', 'skeleton' => [
+                ['primitive' => 'box', 'props' => [], 'children' => [
+                    ['comment' => 'Purpose: the hook, in the reader\'s words.'],
+                    ['primitive' => 'p', 'props' => [], 'children' => [['primitive' => 'text', 'props' => ['value' => '[Hook]']]]],
+                ]],
+            ]],
+        ]]);
+
+        $walk = function (array $nodes, string $path) use (&$walk, $schema): int {
+            $count = 0;
+            foreach ($nodes as $i => $node) {
+                $schema->validateNode($node, "{$path}.{$i}");
+                $count++;
+                $count += $walk((array) ($node['children'] ?? []), "{$path}.{$i}.children");
+            }
+
+            return $count;
+        };
+
+        $this->assertSame(6, $walk($layout->starter(), 'nodes'));
+        $this->assertSame([['comment' => 'Purpose: the page\'s one h1.']], PrimitiveSchema::canonical([['comment' => 'Purpose: the page\'s one h1.']]), 'kept byte for byte');
+
+        $schema->validateNode(['comment' => 'A studio note', 'note' => ['for' => 'u1']]);
+        foreach ([['comment' => 5], ['comment' => 'x', 'primitive' => 'p'], ['comment' => 'x', 'note' => 'not a note']] as $bad) {
+            try {
+                $schema->validateNode($bad);
+                $this->fail('accepted '.json_encode($bad));
+            } catch (\Shirahcan\Pml\InvalidPmlException) {
+                $this->addToAssertionCount(1);
+            }
+        }
+    }
+
     public function test_the_contents_items_point_at_the_ids_the_page_gives_its_headings(): void
     {
         $nodes = [

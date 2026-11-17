@@ -287,6 +287,22 @@ class PrimitiveSchema
      */
     public function validateNode(array $node, string $path = 'node'): void
     {
+        /*
+         * A comment (`<!-- -->`, a studio note, a template's purpose note) may stand wherever a node may (0.26.1): a
+         * post started from a template that carries purpose notes is validated on every save, and refusing the notes
+         * meant it could never be saved. It holds its words and, for a studio note, its `note`; nothing else rides on it.
+         */
+        if (PmlParser::isCommentNode($node)) {
+            if (! is_string($node['comment'])) {
+                throw new InvalidPmlException('A comment holds words.', "{$path}.comment");
+            }
+            if (array_diff(array_keys($node), ['comment', 'note']) !== [] || (isset($node['note']) && ! is_array($node['note']))) {
+                throw new InvalidPmlException('A comment holds its words and a note only.', $path);
+            }
+
+            return;
+        }
+
         $primitive = $node['primitive'] ?? null;
 
         if (! is_string($primitive) || ! ElementCatalog::has($primitive)) {
