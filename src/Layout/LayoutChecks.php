@@ -110,11 +110,18 @@ final class LayoutChecks
             $within = $part['moves_within'] ?? null;
 
             foreach ($within !== null ? ($found[$part['key']] ?? []) : [] as $instance) {
-                $range = array_column($found[$within] ?? [], 'position');
+                $range = $found[$within] ?? [];
+                if ($range === []) {
+                    continue;
+                }
 
-                if ($range !== [] && (self::before($instance['position'], min($range)) || self::before(max($range), $instance['position']))) {
+                $first = min(array_column($range, 'position'));
+                $last = self::rangeEnd($layout, $within, $range, $found);
+
+                if (self::before($instance['position'], $first) || self::before($last, $instance['position'])) {
                     $label = $layout->part($within)['label'] ?? $within;
-                    $findings[] = self::finding('warn', 'layout.cta_outside_range', $part, "{$part['label']} sits outside {$label}.", "Move it between the parts of {$label}.");
+                    $rule = $part['kind'] === 'cta' ? 'layout.cta_outside_range' : 'layout.outside_range';
+                    $findings[] = self::finding('warn', $rule, $part, "{$part['label']} sits outside {$label}.", "Move it between the parts of {$label}, or right after the last one.");
                 }
             }
         }
@@ -141,12 +148,49 @@ final class LayoutChecks
 
             if ($part !== null) {
                 $found[$part][] = ['node' => $node, 'position' => $position, 'ancestors' => $ancestors];
+                $index = array_key_last($found[$part]);
             }
 
             if (is_array($node['children'] ?? null)) {
                 self::collect($node['children'], $part !== null ? [...$ancestors, $part] : $ancestors, $found, $counter);
             }
+
+            if ($part !== null) {
+                // The last position inside this instance, so "right after it" is the next one (0.27.1).
+                $found[$part][$index]['end'] = $counter[0] - 1;
+            }
         }
+    }
+
+    /**
+     * The last position a part moving within `$within` may take: inside the last instance, right after it, or right
+     * behind other parts that move within the same range and sit there (a data block, then the call to action). Inclusive
+     * end (0.27.1): "after the 4th question section" is inside a post that has exactly four.
+     *
+     * @param  list<array<string, mixed>>  $range
+     * @param  array<string, list<array<string, mixed>>>  $found
+     */
+    private static function rangeEnd(LayoutDefinition $layout, string $within, array $range, array $found): int
+    {
+        $last = max(array_column($range, 'end'));
+        $movers = [];
+        foreach ($layout->parts as $part) {
+            if (($part['moves_within'] ?? null) === $within) {
+                foreach ($found[$part['key']] ?? [] as $instance) {
+                    $movers[$instance['position']] = $instance['end'];
+                }
+            }
+        }
+
+        // Walk the movers sitting one right behind the other after the last instance: each may start there.
+        $end = $last;
+        $cursor = $last + 1;
+        while (isset($movers[$cursor])) {
+            $end = $cursor;
+            $cursor = $movers[$cursor] + 1;
+        }
+
+        return $end;
     }
 
     private static function before(int $a, int $b): bool

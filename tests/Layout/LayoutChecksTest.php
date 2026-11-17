@@ -131,12 +131,59 @@ class LayoutChecksTest extends TestCase
         $this->assertContains('layout.outside_its_part:faq-item', $this->rules(LayoutChecks::check($this->layout(), $post), 'block'));
     }
 
+    public function test_right_after_the_last_section_is_inside_and_a_data_block_may_move_too(): void
+    {
+        $layout = LayoutDefinition::fromArray([
+            'key' => 'classic', 'name' => 'Classic', 'kind' => 'post',
+            'parts' => [
+                ['key' => 'hook', 'label' => 'Hook', 'kind' => 'fill', 'skeleton' => [['primitive' => 'p', 'children' => [self::text('Hook words here.')]]]],
+                ['key' => 'section', 'label' => 'Question section', 'kind' => 'repeat', 'min' => 4, 'skeleton' => [['primitive' => 'heading', 'props' => ['text' => 'Who can apply?', 'level' => 2]]]],
+                ['key' => 'data', 'label' => 'Data table', 'kind' => 'repeat', 'min' => 1, 'moves_within' => 'section', 'starts_after' => 2, 'skeleton' => [['primitive' => 'p', 'children' => [self::text('The fee table.')]]]],
+                ['key' => 'cta-consideration', 'label' => 'Consideration call to action', 'kind' => 'cta', 'stage' => 'consideration', 'moves_within' => 'section', 'starts_after' => 4, 'skeleton' => [['primitive' => 'post_cta', 'props' => ['stage' => 'consideration']]]],
+            ],
+        ]);
+
+        $starter = $layout->starter();
+        $this->assertSame(['hook', 'section', 'section', 'data', 'section', 'section', 'cta-consideration'], array_column($starter, 'part'), 'data after the 2nd section, the CTA after the 4th');
+        $this->assertSame([], array_values(array_filter(LayoutChecks::check($layout, $starter)['findings'], static fn ($f) => str_contains($f['rule'], 'outside'))), 'a fresh document starts inside its ranges');
+
+        // Fewer sections than starts_after: the CTA lands after the last one, and a data block there with the CTA behind it is still inside.
+        $short = [$starter[0], $starter[1], $starter[2], $starter[3], $starter[6]];
+        $this->assertSame([], array_values(array_filter(LayoutChecks::check($layout, $short)['findings'], static fn ($f) => str_contains($f['rule'], 'outside'))));
+
+        // A data block above the first section is outside, and says so with its own rule.
+        $above = [$starter[0], $starter[3], $starter[1], $starter[2], $starter[4], $starter[5], $starter[6]];
+        $this->assertSame(['layout.outside_range:data'], $this->rules(LayoutChecks::check($layout, $above), 'warn'));
+    }
+
+    public function test_a_moving_part_says_where_it_starts_and_only_a_moving_part_may(): void
+    {
+        $part = static fn (array $extra) => LayoutDefinition::fromArray(['key' => 'x', 'name' => 'X', 'kind' => 'post', 'parts' => [
+            ['key' => 'section', 'label' => 'Section', 'kind' => 'repeat', 'min' => 1],
+            ['key' => 'data', 'label' => 'Data', 'kind' => 'fill'] + $extra,
+        ]]);
+
+        $this->assertSame(2, $part(['moves_within' => 'section', 'starts_after' => 2])->part('data')['starts_after']);
+        foreach ([['starts_after' => 2], ['moves_within' => 'section', 'starts_after' => 0]] as $bad) {
+            try {
+                $part($bad);
+                $this->fail('refused: '.json_encode($bad));
+            } catch (\Shirahcan\Pml\InvalidPmlException $e) {
+                $this->assertStringContainsString('starts_after', $e->getMessage());
+            }
+        }
+    }
+
     public function test_counts_and_a_misplaced_cta_only_warn(): void
     {
         $post = $this->complete();
         $post[1] = self::marked('hook', [self::text('Too short.')]);
-        // The consideration call to action moved below every question section.
-        [$post[4], $post[5]] = [$post[5], $post[4]];
+        // The consideration call to action moved above every question section (right after the LAST one is inside its
+        // range since 0.27.1, so "outside" is now before the first).
+        $cta = $post[4];
+        unset($post[4]);
+        array_splice($post, 3, 0, [$cta]);
+        $post = array_values($post);
 
         $result = LayoutChecks::check($this->layout(), $post);
 

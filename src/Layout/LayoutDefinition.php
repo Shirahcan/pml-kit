@@ -17,7 +17,9 @@ use Shirahcan\Pml\PrimitiveSchema;
  * - `repeat`: a part that repeats between `min` and `max` times (question sections, FAQs); `inside` puts it inside
  *   another part (each FAQ inside the FAQ part);
  * - `cta`: a call to action of one `stage` (awareness, consideration, decision), its copy from the CTA library;
- *   `moves_within` names the part it may move inside (the consideration CTA anywhere in the body);
+ *   `moves_within` names the part it may move inside (the consideration CTA anywhere in the body); since 0.27.1 a
+ *   fill or repeat part may move too (a data block between question sections), and `starts_after: N` places it in a
+ *   fresh document right after the N-th instance of that part;
  * - `record`: picked from records, never written (a consented client story).
  *
  * The design marks each part on the PML with `part="<key>"` (0.14.0); `skeleton` is the PML a part starts as.
@@ -108,7 +110,11 @@ final class LayoutDefinition
      */
     public function starter(): array
     {
-        $nodes = [];
+        // Segments in definition order: [part key, its nodes]. A part that moves within another and says where it
+        // starts (`starts_after`) is moved after that instance once every part is laid out, so a fresh document
+        // already sits inside its range (0.27.1: the Classic starter warned "consideration sits outside Question section").
+        $segments = [];
+        $movers = [];
 
         foreach ($this->parts as $part) {
             if (isset($part['inside']) || $part['skeleton'] === []) {
@@ -117,9 +123,44 @@ final class LayoutDefinition
 
             $times = $part['kind'] === 'repeat' ? max(1, $part['min']) : 1;
 
-            for ($i = 0; $i < $times; $i++) {
-                array_push($nodes, ...$part['skeleton']);
+            if (isset($part['moves_within'], $part['starts_after'])) {
+                $nodes = [];
+                for ($i = 0; $i < $times; $i++) {
+                    array_push($nodes, ...$part['skeleton']);
+                }
+                $movers[] = ['part' => $part, 'nodes' => $nodes];
+                // Holds its definition place, used only when the part it moves within is absent.
+                $segments[] = ['key' => '@slot:'.$part['key'], 'nodes' => []];
+            } else {
+                // One segment per instance, so "after the N-th" can be found.
+                for ($i = 0; $i < $times; $i++) {
+                    $segments[] = ['key' => $part['key'], 'nodes' => $part['skeleton']];
+                }
             }
+        }
+
+        foreach ($movers as $mover) {
+            $instances = array_keys(array_filter($segments, static fn (array $s) => $s['key'] === $mover['part']['moves_within']));
+
+            if ($instances === []) {
+                $slot = array_key_first(array_filter($segments, static fn (array $s) => $s['key'] === '@slot:'.$mover['part']['key']));
+                $segments[$slot]['nodes'] = $mover['nodes'];
+
+                continue;
+            }
+
+            $target = $instances[min($mover['part']['starts_after'], count($instances)) - 1];
+            // After that instance and any mover already placed right behind it, so movers keep their definition order.
+            $insertAt = $target + 1;
+            while (isset($segments[$insertAt]) && $segments[$insertAt]['key'] === '@moved') {
+                $insertAt++;
+            }
+            array_splice($segments, $insertAt, 0, [['key' => '@moved', 'nodes' => $mover['nodes']]]);
+        }
+
+        $nodes = [];
+        foreach ($segments as $segment) {
+            array_push($nodes, ...$segment['nodes']);
         }
 
         return $nodes;
@@ -185,11 +226,30 @@ final class LayoutDefinition
                 throw new InvalidPmlException('A call to action is inline, rail, ask or banner.', "{$path}.variant");
             }
 
-            if (isset($part['moves_within'])) {
-                $out['moves_within'] = self::key($part['moves_within'], "{$path}.moves_within");
+        } elseif (isset($part['stage']) || isset($part['variant'])) {
+            throw new InvalidPmlException('Only a call to action has "stage" or "variant".', $path);
+        }
+
+        // Moving within another part (0.27.1): a call to action, or a fill / repeat part (the reference's data block
+        // between question sections). `starts_after: N` is where a fresh document places it: right after the N-th
+        // instance of that part (after the last when there are fewer).
+        if (isset($part['moves_within'])) {
+            if (! in_array($kind, ['cta', 'fill', 'repeat'], true)) {
+                throw new InvalidPmlException('Only a call to action, a fill part or a repeating part can move within another part.', "{$path}.moves_within");
             }
-        } elseif (isset($part['stage']) || isset($part['variant']) || isset($part['moves_within'])) {
-            throw new InvalidPmlException('Only a call to action has "stage", "variant" or "moves_within".', $path);
+            if (isset($part['inside'])) {
+                throw new InvalidPmlException('A part either sits inside another part or moves within one, not both.', "{$path}.moves_within");
+            }
+            $out['moves_within'] = self::key($part['moves_within'], "{$path}.moves_within");
+
+            if (isset($part['starts_after'])) {
+                if (! is_int($part['starts_after']) || $part['starts_after'] < 1) {
+                    throw new InvalidPmlException('"starts_after" is a whole number from 1: which instance it starts after.', "{$path}.starts_after");
+                }
+                $out['starts_after'] = $part['starts_after'];
+            }
+        } elseif (isset($part['starts_after'])) {
+            throw new InvalidPmlException('"starts_after" goes with "moves_within": it says where a moving part starts.', "{$path}.starts_after");
         }
 
         $out['rules'] = self::rules($part['rules'] ?? [], "{$path}.rules");
