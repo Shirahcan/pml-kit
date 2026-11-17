@@ -453,16 +453,28 @@ class PmlCompiler
             // element ("we <strong>guarantee</strong> your visa") is read whole, never as three
             // harmless pieces. Its runs are not read again one by one.
             if ($type !== null && ElementCatalog::holdsInline($type) && ! in_array($type, ElementCatalog::inline(), true)) {
-                $words = trim((string) preg_replace('/\s+/u', ' ', $this->wordsOf($node['children'] ?? [])));
+                // A list item (0.25.0) ends with at most one nested list: its words are the runs BEFORE it, and
+                // the nested list is read below like any list. Every other holder has no such block.
+                $blocks = ElementCatalog::alsoHolds($type);
+                $kids = (array) ($node['children'] ?? []);
+                $runs = array_values(array_filter($kids, fn ($c) => ! (is_array($c) && in_array($c['primitive'] ?? null, $blocks, true))));
+                $words = trim((string) preg_replace('/\s+/u', ' ', $this->wordsOf($runs)));
 
                 if ($words !== '') {
                     $out[] = [$words, $type, 'words'];
                 }
 
-                // Its runs' `{...}` values are not in those words: read the words written inside them.
-                array_push($out, ...self::literalProseDeep([$node]));
+                if (! ElementCatalog::hasProseProps($type)) {
+                    // Its runs' `{...}` values are not in those words: read the words written inside them.
+                    array_push($out, ...self::literalProseDeep([$node]));
 
-                continue;
+                    continue;
+                }
+
+                // A list item also carries words in its own props (`title`, a plain item's `text`): those are read
+                // by the prop scan below, and its nested list by the child walk, never skipped.
+                array_push($out, ...self::literalProseDeep($runs));
+                $node['children'] = array_values(array_filter($kids, fn ($c) => is_array($c) && in_array($c['primitive'] ?? null, $blocks, true)));
             }
 
             array_push($out, ...self::literalProse($node, $type));

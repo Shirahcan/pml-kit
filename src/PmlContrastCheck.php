@@ -289,7 +289,10 @@ final class PmlContrastCheck
             // A mirror's paragraphs are rich text; a paragraph's words are its runs, read together.
             'rich_text' => is_string($props['markdown'] ?? null) ? self::plainMarkdown($props['markdown']) : null,
             'p' => self::runText((array) ($node['children'] ?? [])),
-            'list_item' => $props['text'] ?? ($props['title'] ?? null),
+            // A list item with words of its own (0.25.0) is read like a paragraph; a plain one by its text or title.
+            'list_item' => ($runs = array_values(array_filter((array) ($node['children'] ?? []), fn ($c) => is_array($c) && ($c['primitive'] ?? null) !== 'list'))) !== []
+                ? self::runText($runs)
+                : ($props['text'] ?? ($props['title'] ?? null)),
             // A button drawn without a fill (link, outline, ghost) is its words in the text colour.
             'button' => in_array($props['variant'] ?? null, ['link', 'outline', 'ghost'], true) ? ($props['label'] ?? null) : null,
             default => null,

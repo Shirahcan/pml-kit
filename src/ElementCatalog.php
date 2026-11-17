@@ -76,7 +76,8 @@ final class ElementCatalog
 
         foreach ($elements as $name => $el) {
             if (($el['holds'] ?? null) === 'inline') {
-                $elements[$name]['children'] = ['text', ...$inline];
+                // `also_holds`: a block a holder may END with after its words (a list item's nested list, 0.25.0).
+                $elements[$name]['children'] = ['text', ...$inline, ...array_values((array) ($el['also_holds'] ?? []))];
             }
 
             if (($el['category'] ?? null) === 'inline') {
@@ -97,6 +98,33 @@ final class ElementCatalog
     public static function holdsInline(string $element): bool
     {
         return (self::data()['elements'][$element]['holds'] ?? null) === 'inline';
+    }
+
+    /**
+     * The blocks a word holder may end with after its words (`also_holds`): a list item's nested `list`. Empty for
+     * every other element.
+     *
+     * @return list<string>
+     */
+    public static function alsoHolds(string $element): array
+    {
+        return array_values((array) (self::data()['elements'][$element]['also_holds'] ?? []));
+    }
+
+    /**
+     * Whether an element carries words in its own props as well as (or instead of) children: a list item's `title` and
+     * `text`. A plain word holder (`p`, `caption`) has none. Such an element written with no children is still
+     * self-closing (`<list-item text="..."/>`), so every list written before 0.25.0 serialises byte for byte.
+     */
+    public static function hasProseProps(string $element): bool
+    {
+        foreach ((array) (self::data()['elements'][$element]['props'] ?? []) as $prop) {
+            if (($prop['type'] ?? null) === 'prose') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** Whether the compiler makes this prop (never authored, stored or written back). */

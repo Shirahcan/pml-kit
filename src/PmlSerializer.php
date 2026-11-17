@@ -96,7 +96,10 @@ class PmlSerializer
 
         // A paragraph or an inline element holds words: written on one line, words and elements
         // side by side, exactly as they read.
-        if (is_string($node['primitive'] ?? null) && ElementCatalog::holdsInline($node['primitive'])) {
+        // A list item (0.25.0) holds words too, but one with no children stays self-closing below, so a list written
+        // before it carried words serialises byte for byte.
+        if (is_string($node['primitive'] ?? null) && ElementCatalog::holdsInline($node['primitive'])
+            && (($node['children'] ?? []) !== [] || ! ElementCatalog::hasProseProps($node['primitive']))) {
             return $pad.$this->inlineNode($node);
         }
 

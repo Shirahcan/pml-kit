@@ -58,10 +58,41 @@ final class HtmlToPmlTest extends TestCase
         $this->assertSame(['text', 'strong', 'text', 'emphasis', 'text', 'link', 'text'], self::primitives($nodes[0]['children']));
         $this->assertSame('https://www.canada.ca/en/immigration.html', $nodes[0]['children'][5]['props']['href']);
 
-        // A bold opening label is the item's title; a nested list keeps its words in its item.
+        // A bold opening label is the item's title; a nested list stays a list inside its item (0.25.0).
         $this->assertSame(['title' => 'Proof of funds', 'text' => 'for the first year'], $nodes[2]['children'][0]['props']);
-        $this->assertSame('A letter of acceptance from a DLI', $nodes[2]['children'][1]['props']['text']);
+        $this->assertSame(['text' => 'A letter of acceptance'], $nodes[2]['children'][1]['props']);
+        $this->assertSame('list', $nodes[2]['children'][1]['children'][0]['primitive']);
+        $this->assertSame(['text' => 'from a DLI'], $nodes[2]['children'][1]['children'][0]['children'][0]['props']);
         $this->assertSame('numbered', $nodes[4]['props']['type']);
+    }
+
+    public function test_a_list_item_with_marks_or_links_holds_them_as_its_words(): void
+    {
+        $html = '<ul><li><strong>Fees</strong> – pay at <a href="https://ircc.example/pay">IRCC</a> <em>online</em></li><li>Plain words</li></ul>';
+        $result = (new HtmlToPml())->convert($html);
+        $items = $result['nodes'][0]['children'];
+
+        $this->assertSame([], $result['unconverted']);
+        $this->assertSame([], HtmlParity::differences($html, $result['nodes']));
+        $this->assertSame(['title' => 'Fees'], $items[0]['props']);
+        $this->assertSame(['text', 'link', 'text', 'emphasis'], self::primitives($items[0]['children']));
+        $this->assertSame('– pay at ', $items[0]['children'][0]['props']['value'], 'the space after the label is not kept, as text never kept it');
+        $this->assertSame(['primitive' => 'list_item', 'props' => ['text' => 'Plain words']], $items[1], 'a plain item is exactly what it always was');
+    }
+
+    public function test_lists_nest_two_levels_and_a_third_becomes_words(): void
+    {
+        $html = '<ol><li>Apply<ul><li>Online<ul><li>Use the portal</li></ul></li></ul></li></ol>';
+        $result = (new HtmlToPml())->convert($html);
+        $top = $result['nodes'][0];
+        $inner = $top['children'][0]['children'][0];
+
+        $this->assertSame('numbered', $top['props']['type']);
+        $this->assertSame('bullet', $inner['props']['type']);
+        $this->assertSame(['text' => 'Online Use the portal'], $inner['children'][0]['props']);
+        $this->assertArrayNotHasKey('children', $inner['children'][0]);
+        $this->assertContains('A list three levels deep became part of its item\'s words ("Online Use the portal").', $result['notes']);
+        $this->assertSame([], HtmlParity::differences($html, $result['nodes']));
     }
 
     public function test_an_element_with_no_page_home_is_described_in_unconverted_never_dropped(): void
@@ -71,13 +102,6 @@ final class HtmlToPmlTest extends TestCase
 
         $this->assertSame(['an embedded frame (youtube.com)', 'a video (cdn.example) inside a paragraph'], $result['unconverted']);
         $this->assertSame(['p', 'p'], self::primitives($result['nodes']));
-    }
-
-    public function test_a_link_inside_a_list_item_is_unconverted_because_a_list_item_holds_words_only(): void
-    {
-        $result = (new HtmlToPml())->convert('<ul><li>See <a href="https://x.example">the guide</a></li></ul>');
-
-        $this->assertSame(['A link inside a list item (a list item holds words only): See the guide'], $result['unconverted']);
     }
 
     public function test_the_email_profile_keeps_email_rules_without_any_tokens(): void

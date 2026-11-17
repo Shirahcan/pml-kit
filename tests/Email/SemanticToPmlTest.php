@@ -102,10 +102,17 @@ final class SemanticToPmlTest extends TestCase
         $this->assertSame(3, substr_count($html, 'class="pml-email-button"'));
     }
 
-    public function test_a_link_inside_a_list_item_is_not_converted(): void
+    /** Until 0.25.0 a list item held words only, so this body stayed unconverted; now the item holds its link. */
+    public function test_a_link_inside_a_list_item_converts_as_the_items_words(): void
     {
-        $result = (new SemanticToPml())->convert('<ul><li><p>See <a href="https://x.example">this</a></p></li></ul>');
+        $html = '<ul><li><p>See <a href="https://x.example">this</a></p></li></ul>';
+        $result = (new SemanticToPml())->convert($html);
 
-        $this->assertCount(1, $result['unconverted'], 'the caller keeps the old body rather than lose the link');
+        $this->assertSame([], $result['unconverted']);
+        $this->assertSame([], SemanticParity::differences($html, $result['nodes']));
+        $this->assertSame(
+            [['primitive' => 'text', 'props' => ['value' => 'See ']], ['primitive' => 'link', 'props' => ['href' => 'https://x.example'], 'children' => [['primitive' => 'text', 'props' => ['value' => 'this']]]]],
+            $result['nodes'][0]['children'][0]['children'],
+        );
     }
 }

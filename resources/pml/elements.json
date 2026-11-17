@@ -328,7 +328,9 @@
             }
         },
         "list_item": {
-            "container": false,
+            "container": true,
+            "holds": "inline",
+            "also_holds": ["list"],
             "props": {
                 "icon": { "type": "enum", "values": "@icon" },
                 "title": { "type": "prose" },

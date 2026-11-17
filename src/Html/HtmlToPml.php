@@ -270,43 +270,117 @@ final class HtmlToPml
         return $text === '' ? [] : [['primitive' => 'text', 'props' => ['value' => $text]]];
     }
 
-    /** A list; an item that opens with a bold label keeps it as the item's title ("**Payments** – Accept..."). */
-    private function listBlock(DOMElement $el): array
+    /**
+     * A list. An item that opens with a bold label keeps it as the item's `title` ("**Payments** – Accept..."). Plain
+     * words stay in `text`, exactly as before 0.25.0; an item whose words carry marks or links holds them as
+     * `children` (a paragraph's word runs), and an item may end with ONE nested list (two levels deep; a deeper list
+     * becomes part of its item's words, noted).
+     *
+     * @return array<string, mixed>
+     */
+    private function listBlock(DOMElement $el, int $depth = 1): array
     {
         $items = [];
 
         foreach ($el->childNodes as $li) {
-            if (! $li instanceof DOMElement || strtolower($li->tagName) !== 'li') {
-                continue;
+            if ($li instanceof DOMElement && strtolower($li->tagName) === 'li') {
+                $items[] = $this->listItem($li, $depth);
             }
-
-            $source = $this->onlyChild($li);
-            $source = $source instanceof DOMElement && strtolower($source->tagName) === 'p' ? $source : $li;
-            $first = $this->firstMeaningful($source);
-            $words = $this->flatten($source);
-            $title = '';
-            $marks = $source->getElementsByTagName('*')->length;
-
-            if ($first instanceof DOMElement && in_array(strtolower($first->tagName), ['strong', 'b'], true) && $first->getElementsByTagName('*')->length === 0) {
-                $title = $this->flatten($first);
-                $words = trim(mb_substr($words, mb_strlen($title)));
-                $marks--;
-            }
-
-            if ($this->profile === self::PAGE && ($source->getElementsByTagName('ul')->length + $source->getElementsByTagName('ol')->length) > 0) {
-                $this->notes[] = 'A list inside a list item became part of that item\'s words ("'.mb_substr($words, 0, 60).'").';
-            }
-
-            if ($source->getElementsByTagName('a')->length > 0) {
-                $this->unconverted[] = 'A link inside a list item (a list item holds words only): '.mb_substr($words, 0, 80);
-            } elseif ($marks > 0) {
-                $this->notes[] = 'A list item keeps its words, but not bold, italic or links after its opening label.';
-            }
-
-            $items[] = ['primitive' => 'list_item', 'props' => array_filter(['title' => $title, 'text' => $words], fn ($v) => $v !== '')];
         }
 
         return ['primitive' => 'list', 'props' => ['type' => strtolower($el->tagName) === 'ol' ? 'numbered' : 'bullet'], 'children' => $items];
+    }
+
+    /** @return array<string, mixed> */
+    private function listItem(DOMElement $li, int $depth): array
+    {
+        // The item's words and its nested lists, apart. `<li><p>words</p><ul>...</ul></li>` reads like `<li>words<ul>`.
+        $wordNodes = [];
+        $nested = [];
+        foreach ($li->childNodes as $child) {
+            if ($child instanceof DOMElement && in_array(strtolower($child->tagName), ['ul', 'ol'], true)) {
+                $nested[] = $child;
+            } else {
+                $wordNodes[] = $child;
+            }
+        }
+        $meaningful = array_values(array_filter($wordNodes, fn (DOMNode $n) => ! ($n->nodeType === XML_TEXT_NODE && trim($n->textContent) === '')));
+        if (count($meaningful) === 1 && $meaningful[0] instanceof DOMElement && strtolower($meaningful[0]->tagName) === 'p') {
+            $wordNodes = iterator_to_array($meaningful[0]->childNodes);
+        }
+
+        $words = $li->ownerDocument->createElement('div');
+        foreach ($wordNodes as $node) {
+            $words->appendChild($node->cloneNode(true));
+        }
+
+        // Deeper than two levels: the list becomes part of the item's words.
+        if ($depth >= 2 && $nested !== []) {
+            foreach ($nested as $list) {
+                $words->appendChild($li->ownerDocument->createTextNode(' '.$this->flattenAny($list)));
+            }
+            $this->notes[] = 'A list three levels deep became part of its item\'s words ("'.mb_substr($this->flattenAny($words), 0, 60).'").';
+            $nested = [];
+        }
+
+        $title = '';
+        $first = $this->firstMeaningful($words);
+        if ($first instanceof DOMElement && in_array(strtolower($first->tagName), ['strong', 'b'], true) && $first->getElementsByTagName('*')->length === 0) {
+            $title = $this->flatten($first);
+            $words->removeChild($first);
+        }
+
+        $props = ['title' => $title];
+        $children = [];
+        if ($words->getElementsByTagName('*')->length > 0) {
+            $children = self::trimRuns($this->inlines($words));
+        } else {
+            $props['text'] = $this->flatten($words);
+        }
+
+        if ($nested !== []) {
+            $list = $this->listBlock($nested[0], $depth + 1);
+            foreach (array_slice($nested, 1) as $more) {
+                // Two lists side by side in one item read as one list (rare): their items, in order.
+                $list['children'] = [...$list['children'], ...$this->listBlock($more, $depth + 1)['children']];
+                $this->notes[] = 'Two lists inside one list item became one list.';
+            }
+            $children[] = $list;
+        }
+
+        return ['primitive' => 'list_item', 'props' => array_filter($props, fn ($v) => $v !== ''), ...($children !== [] ? ['children' => $children] : [])];
+    }
+
+    /**
+     * An item's words as runs, without the space that sat between its bold label and the rest (or after the last
+     * word), so "**Payments** – Accept" holds "– Accept", as the plain item's `text` always did.
+     *
+     * @param  list<array<string, mixed>>  $runs
+     * @return list<array<string, mixed>>
+     */
+    private static function trimRuns(array $runs): array
+    {
+        foreach ([0, -1] as $end) {
+            $at = $end === 0 ? 0 : count($runs) - 1;
+            if (($runs[$at]['primitive'] ?? null) !== 'text') {
+                continue;
+            }
+            $value = (string) ($runs[$at]['props']['value'] ?? '');
+            $value = $end === 0 ? (string) preg_replace('/^[\s\x{00A0}]+/u', '', $value) : (string) preg_replace('/[\s\x{00A0}]+$/u', '', $value);
+            if ($value === '') {
+                array_splice($runs, $at, 1);
+            } else {
+                $runs[$at]['props']['value'] = $value;
+            }
+        }
+
+        return array_values($runs);
+    }
+
+    /** Words of any node with block edges as word boundaries, in either profile. */
+    private function flattenAny(DOMNode $node): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', $this->spacedText($node)));
     }
 
     private function table(DOMElement $el): array
