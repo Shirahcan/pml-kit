@@ -18,7 +18,7 @@ class PortifyWeeklySeedTest extends TestCase
 {
     private function layout(): LayoutDefinition
     {
-        $data = json_decode((string) file_get_contents(dirname(__DIR__, 2).'/resources/layouts/email.portify-weekly.json'), true);
+        $data = json_decode((string) file_get_contents(dirname(__DIR__).'/fixtures/layouts/email.portify-weekly.json'), true);
 
         return LayoutDefinition::fromArray($data, new PrimitiveSchema(new BlockSchema()));
     }
@@ -52,7 +52,7 @@ class PortifyWeeklySeedTest extends TestCase
 
     public function test_the_seed_never_writes_a_figure_or_a_client_win(): void
     {
-        $raw = (string) file_get_contents(dirname(__DIR__, 2).'/resources/layouts/email.portify-weekly.json');
+        $raw = (string) file_get_contents(dirname(__DIR__).'/fixtures/layouts/email.portify-weekly.json');
 
         $this->assertStringNotContainsString(LayoutChecks::MARKER, $raw);
         $this->assertDoesNotMatchRegularExpression('/\$\s?\d|\d{2,},\d{3}/', $raw);

@@ -16,7 +16,7 @@ class FullGuideSeedTest extends TestCase
 {
     private function layout(): LayoutDefinition
     {
-        $data = json_decode((string) file_get_contents(dirname(__DIR__, 2).'/resources/layouts/post.full-guide.json'), true);
+        $data = json_decode((string) file_get_contents(dirname(__DIR__).'/fixtures/layouts/post.full-guide.json'), true);
 
         return LayoutDefinition::fromArray($data, new PrimitiveSchema(new BlockSchema()));
     }
@@ -66,7 +66,7 @@ class FullGuideSeedTest extends TestCase
 
     public function test_the_seed_never_writes_a_figure_or_a_story(): void
     {
-        $raw = (string) file_get_contents(dirname(__DIR__, 2).'/resources/layouts/post.full-guide.json');
+        $raw = (string) file_get_contents(dirname(__DIR__).'/fixtures/layouts/post.full-guide.json');
 
         $this->assertStringNotContainsString(LayoutChecks::MARKER, $raw, 'guidance must not trip the lock it describes');
         $this->assertDoesNotMatchRegularExpression('/\$\s?\d|\d{2,},\d{3}/', $raw, 'no fees or figures in a skeleton');
