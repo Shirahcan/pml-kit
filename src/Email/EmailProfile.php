@@ -3,6 +3,7 @@
 namespace Shirahcan\Pml\Email;
 
 use Shirahcan\Pml\ElementCatalog;
+use Shirahcan\Pml\PmlParser;
 
 /**
  * What an EMAIL may hold (shared program, pml-email A1/A2, owner 2026-11-16: "the email should also move to a visual
@@ -66,6 +67,12 @@ final class EmailProfile
         foreach (array_values($nodes) as $i => $node) {
             $where = $at === '' ? (string) ($i + 1) : $at.'.'.($i + 1);
 
+            // A comment (a studio comment pinned to a block, a template's Purpose or VERIFY note) is for the author,
+            // never the reader: the compiler leaves it out, so it is not an element the email holds.
+            if (is_array($node) && PmlParser::isCommentNode($node)) {
+                continue;
+            }
+
             if (isset($node['component'])) {
                 // A component inside an email must itself be an email component; its expanded nodes are checked
                 // where they are expanded. Here it is only named, never assumed safe.
@@ -123,7 +130,9 @@ final class EmailProfile
     public static function variables(array $nodes): array
     {
         $names = [];
-        array_walk_recursive($nodes, function ($value) use (&$names): void {
+        // A comment's words are the author's notes, never sent, so a {{name}} written in one is not a variable to fill.
+        $sent = self::withoutComments($nodes);
+        array_walk_recursive($sent, function ($value) use (&$names): void {
             if (is_string($value) && preg_match_all('/\{\{\s*([a-z0-9_]+)\s*\}\}/i', $value, $m) > 0) {
                 foreach ($m[1] as $name) {
                     $names[strtolower($name)] = true;
@@ -132,6 +141,27 @@ final class EmailProfile
         });
 
         return array_keys($names);
+    }
+
+    /**
+     * The design without its comment nodes, at any depth: what a reader can receive.
+     *
+     * @param  array<int|string, mixed>  $nodes
+     * @return array<int|string, mixed>
+     */
+    private static function withoutComments(array $nodes): array
+    {
+        $list = array_is_list($nodes);
+        $kept = [];
+
+        foreach ($nodes as $key => $item) {
+            if ($list && is_array($item) && PmlParser::isCommentNode($item)) {
+                continue;
+            }
+            $kept[$key] = is_array($item) ? self::withoutComments($item) : $item;
+        }
+
+        return $list ? array_values($kept) : $kept;
     }
 
     /**

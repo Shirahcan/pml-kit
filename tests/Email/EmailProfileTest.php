@@ -128,4 +128,21 @@ final class EmailProfileTest extends TestCase
         $this->assertSame(['recipient_name', 'action_text', 'action_url'], EmailProfile::variables(self::EMAIL));
         $this->assertTrue(EmailProfile::hasMainButton(self::EMAIL));
     }
+
+    public function test_a_comment_is_the_authors_never_an_element_or_a_variable(): void
+    {
+        // A studio comment pinned to a block, a plain comment, and one nested inside a callout; one names a variable.
+        $design = [
+            ['comment' => 'Purpose: the one big change this week.', 'note' => ['for' => 'eone01abc', 'placement' => 'top-right', 'author' => 'Template']],
+            ['primitive' => 'heading', 'uid' => 'eone01abc', 'props' => ['text' => 'This week', 'level' => 1]],
+            ['comment' => 'Link {{match_url}} here once the page is live.'],
+            ['primitive' => 'callout', 'children' => [
+                ['comment' => 'VERIFY: the fee is still $155.', 'note' => ['for' => 'pone01abc']],
+                ['primitive' => 'p', 'uid' => 'pone01abc', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Hi {{first_name}},']]]],
+            ]],
+        ];
+
+        $this->assertSame([], EmailProfile::violations($design));
+        $this->assertSame(['first_name'], EmailProfile::variables($design));
+    }
 }
