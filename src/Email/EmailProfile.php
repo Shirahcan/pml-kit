@@ -74,8 +74,12 @@ final class EmailProfile
             }
 
             if (isset($node['component'])) {
-                // A component inside an email must itself be an email component; its expanded nodes are checked
-                // where they are expanded. Here it is only named, never assumed safe.
+                // Refused, by name (0.28.1). Nothing expands a component inside an email and the email renderer draws a
+                // node with no element as nothing, so a page component (a carousel, a saved section) would vanish from
+                // what people receive. Until emails have components of their own, an email holds only its own blocks.
+                $name = trim((string) $node['component']);
+                $found[] = self::finding('component', $where, ($name === '' ? 'A component' : "The \"{$name}\" component").' cannot go in an email: an email holds only its own blocks, so it would be left out of what people receive. Use the email\'s own blocks instead.');
+
                 continue;
             }
 

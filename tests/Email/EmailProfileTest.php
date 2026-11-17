@@ -65,6 +65,21 @@ final class EmailProfileTest extends TestCase
         $this->assertStringContainsString('form cannot go in an email', EmailProfile::violations($design)[0]['text']);
     }
 
+    public function test_a_component_is_refused_by_name_never_passed_to_be_dropped(): void
+    {
+        // A page component (a carousel, a saved section) in an email: the email renderer would draw it as nothing.
+        $found = EmailProfile::violations([
+            self::EMAIL[0],
+            ['component' => 'carousel', 'uid' => 'c1abc123', 'props' => []],
+            ['primitive' => 'box', 'children' => [['component' => 'PricingCards', 'props' => []]]],
+        ]);
+
+        $this->assertSame(['component', 'component'], array_column($found, 'code'));
+        $this->assertSame(['2', '3.1'], array_column($found, 'at'));
+        $this->assertStringStartsWith('The "carousel" component cannot go in an email', $found[0]['text']);
+        $this->assertStringContainsString('"PricingCards"', $found[1]['text']);
+    }
+
     public function test_an_allowed_setting_with_a_value_mail_clients_drop_is_refused(): void
     {
         $design = [['primitive' => 'box', 'style' => ['background' => 'gradient', 'padding' => 'custom']], ['primitive' => 'box', 'style' => ['background' => 'surface', 'padding' => 'normal']]];
