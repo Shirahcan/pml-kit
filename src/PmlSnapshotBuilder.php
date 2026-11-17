@@ -64,7 +64,7 @@ class PmlSnapshotBuilder
 
     /**
      * @param  list<array<string, mixed>>  $componentTree
-     * @param  array{packages?: list<array<string, mixed>>, credentials?: array<string, mixed>, testimonials?: list<array<string, mixed>>, post?: array<string, mixed>, ctas?: array<string, array<string, mixed>>}  $moduleData
+     * @param  array{packages?: list<array<string, mixed>>, credentials?: array<string, mixed>, testimonials?: list<array<string, mixed>>, post?: array<string, mixed>, ctas?: array<string, array<string, mixed>>, story?: array<string, mixed>}  $moduleData
      * @param  array<string, callable>  $partials  the site's partial library (handle => expander)
      * @param  ?LicenseeIdentity  $identity  when given (the publish/preflight path), the s.44
      *                                       required-elements check runs on the resolved page. Null
@@ -216,6 +216,12 @@ class PmlSnapshotBuilder
             $row = $ctas["{$stage}:{$variant}"] ?? $ctas["{$stage}:inline"] ?? null;
             $props['resolved'] = is_array($row) ? $row : [];
             $node['props'] = $props;
+        } elseif ($primitive === 'post_story') {
+            // A client story from the product's story bank (post layouts C2e): drawn ONLY when it is verified and its
+            // written consent is recorded; anything else resolves to nothing. Never names, never words a model wrote.
+            $props = is_array($node['props'] ?? null) ? $node['props'] : [];
+            $props['resolved'] = self::storyFields(is_array($moduleData['story'] ?? null) ? $moduleData['story'] : []);
+            $node['props'] = $props;
         }
 
         if (isset($node['children']) && is_array($node['children'])) {
@@ -230,6 +236,30 @@ class PmlSnapshotBuilder
         }
 
         return $node;
+    }
+
+    /**
+     * The story fields a part may draw, and only for a story that is verified with recorded consent (post layouts
+     * C2e). Any other story, or none, draws nothing: a client story without written consent must never reach a page.
+     *
+     * @param  array<string, mixed>  $story
+     * @return array<string, string>
+     */
+    public static function storyFields(array $story): array
+    {
+        if (($story['verified'] ?? false) !== true || empty($story['consent_at'])) {
+            return [];
+        }
+
+        $out = [];
+
+        foreach (['case_type', 'challenge', 'strategy', 'outcome', 'how_found'] as $field) {
+            if (is_string($story[$field] ?? null) && trim($story[$field]) !== '') {
+                $out[$field] = trim($story[$field]);
+            }
+        }
+
+        return $out;
     }
 
     /** The parts that draw a post's own fields (post layouts C2a). */

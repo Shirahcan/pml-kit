@@ -92,4 +92,17 @@ class PostPartsBakeTest extends TestCase
         $this->assertSame('Rules change fast. Get the update before your next step.', $baked[1]['props']['resolved']['headline'], 'a rail with no row of its own uses the stage inline row');
         $this->assertSame([], $baked[2]['props']['resolved'], 'an unset stage draws nothing, never a default');
     }
+
+    public function test_a_story_draws_only_when_verified_with_consent_and_never_more_than_its_story_fields(): void
+    {
+        $story = ['case_type' => 'Canadian Experience Class', 'challenge' => 'A score just under recent cutoffs.', 'strategy' => 'Reference letters rebuilt to match the NOC duties.', 'outcome' => 'Invited in the next draw.', 'how_found' => 'Through Portify Marketplace.', 'client_name' => 'never drawn', 'verified' => true, 'consent_at' => '2026-11-10T12:00:00Z'];
+        $tree = [['primitive' => 'post_story', 'props' => ['heading' => 'Client story']]];
+
+        $baked = $this->builder()->snapshot($tree, ['story' => $story])['tree'][0]['props']['resolved'];
+        $this->assertSame(['case_type', 'challenge', 'strategy', 'outcome', 'how_found'], array_keys($baked));
+
+        $this->assertSame([], $this->builder()->snapshot($tree, ['story' => ['verified' => false] + $story])['tree'][0]['props']['resolved'], 'unverified: nothing');
+        $this->assertSame([], $this->builder()->snapshot($tree, ['story' => ['consent_at' => null] + $story])['tree'][0]['props']['resolved'], 'no recorded consent: nothing');
+        $this->assertSame([], $this->builder()->snapshot($tree)['tree'][0]['props']['resolved'], 'no story picked: nothing');
+    }
 }

@@ -285,6 +285,12 @@
                 "variant": { "type": "enum", "values": "@cta_variant" }
             }
         },
+        "post_story": {
+            "container": false,
+            "props": {
+                "heading": { "type": "prose" }
+            }
+        },
         "porter_intake": {
             "container": false,
             "props": {

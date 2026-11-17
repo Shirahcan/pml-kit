@@ -74,7 +74,8 @@
             }]
         },
         {
-            "key": "story", "label": "Client story", "kind": "record", "required": false
+            "key": "story", "label": "Client story", "kind": "record", "required": false,
+            "skeleton": [{ "primitive": "post_story", "part": "story", "props": { "heading": "Client story" } }]
         },
         {
             "key": "cta-decision", "label": "Call to action: decision", "kind": "cta", "stage": "decision", "locked": true,

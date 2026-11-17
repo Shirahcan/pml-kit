@@ -70,6 +70,7 @@ class FullGuideSeedTest extends TestCase
 
         $this->assertStringNotContainsString(LayoutChecks::MARKER, $raw, 'guidance must not trip the lock it describes');
         $this->assertDoesNotMatchRegularExpression('/\$\s?\d|\d{2,},\d{3}/', $raw, 'no fees or figures in a skeleton');
-        $this->assertSame([], $this->layout()->part('story')['skeleton']);
+        // The story part holds only the element that draws a consented story from the bank: never story words.
+        $this->assertSame([['primitive' => 'post_story', 'part' => 'story', 'props' => ['heading' => 'Client story']]], $this->layout()->part('story')['skeleton']);
     }
 }
