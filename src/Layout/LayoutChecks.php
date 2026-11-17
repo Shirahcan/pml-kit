@@ -310,7 +310,8 @@ final class LayoutChecks
 
             if (PmlParser::isCommentNode($node)) {
                 $text = trim((string) $node['comment']);
-                if (stripos($text, 'VERIFY') === 0) {
+                // A pinned check marked resolved in the designer is settled, as a deleted one is (0.27.5, PinnedNotes).
+                if (stripos($text, 'VERIFY') === 0 && ! PinnedNotes::isResolved($node)) {
                     $next = null;
                     for ($j = $i + 1; $j < count($list); $j++) {
                         if (is_array($list[$j]) && ! PmlParser::isCommentNode($list[$j])) {
