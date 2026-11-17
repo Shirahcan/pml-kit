@@ -67,7 +67,26 @@ class LayoutDefinitionTest extends TestCase
             'inside two levels' => [function ($d) { $d['parts'][3]['inside'] = 'faq-item'; return $d; }, 'layout.parts.3.inside', 'one level'],
             'rule min above max' => [function ($d) { $d['parts'][1]['rules']['words'] = ['min' => 300, 'max' => 200]; return $d; }, 'layout.parts.1.rules.words', 'cannot be above'],
             'bad skeleton element' => [function ($d) { $d['parts'][1]['skeleton'] = [['primitive' => 'p', 'part' => '9 bad']]; return $d; }, 'layout.parts.1.skeleton.0.part', 'part'],
+            'skeleton of another part' => [function ($d) { $d['parts'][1]['skeleton'] = [['primitive' => 'p', 'part' => 'title', 'children' => []]]; return $d; }, 'layout.parts.1.skeleton.0.part', 'belongs to the "hook" part'],
         ];
+    }
+
+    /** 0.23.2: an author who leaves `part` off a skeleton element still gets a starter that passes its own checks. */
+    public function test_a_skeleton_element_is_marked_with_its_part_when_the_author_left_it_off(): void
+    {
+        $definition = ['key' => 'classic', 'name' => 'Classic', 'kind' => 'post', 'parts' => [
+            ['key' => 'title', 'label' => 'Title', 'kind' => 'fill', 'skeleton' => [['primitive' => 'heading', 'props' => ['text' => '[The question]', 'level' => 1]]]],
+            ['key' => 'hook', 'label' => 'Hook', 'kind' => 'fill', 'skeleton' => [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => '[Why it matters]']]]]]],
+        ]];
+
+        $layout = LayoutDefinition::fromArray($definition, new PrimitiveSchema(new BlockSchema()));
+
+        foreach ($layout->parts as $part) {
+            foreach ($part['skeleton'] as $node) {
+                $this->assertSame($part['key'], $node['part']);
+            }
+        }
+        $this->assertTrue(\Shirahcan\Pml\Layout\LayoutChecks::check($layout, $layout->starter())['mayPublish'], 'a fresh document passes its own layout');
     }
 
     #[DataProvider('mistakes')]

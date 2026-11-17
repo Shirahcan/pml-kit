@@ -192,7 +192,7 @@ final class LayoutDefinition
         }
 
         $out['rules'] = self::rules($part['rules'] ?? [], "{$path}.rules");
-        $out['skeleton'] = self::skeleton($part['skeleton'] ?? [], "{$path}.skeleton", $schema);
+        $out['skeleton'] = self::skeleton($part['skeleton'] ?? [], "{$path}.skeleton", $schema, $out['key']);
 
         return $out;
     }
@@ -235,7 +235,13 @@ final class LayoutDefinition
     }
 
     /** @return list<array<string, mixed>> */
-    private static function skeleton(mixed $nodes, string $path, ?PrimitiveSchema $schema): array
+    /**
+     * A part's skeleton belongs to that part, so each top-level element carries `part="<key>"` (0.23.2). Validation
+     * stamps it when the author left it out and refuses an element that names ANOTHER part: without the mark, a
+     * fresh document from {@see starter()} would fail its own checks (`part_missing`), and every new post or issue
+     * started on an edited layout would be refused at publish for a reason its author never caused.
+     */
+    private static function skeleton(mixed $nodes, string $path, ?PrimitiveSchema $schema, string $partKey): array
     {
         if (! is_array($nodes) || ! array_is_list($nodes)) {
             throw new InvalidPmlException('A part\'s "skeleton" is a list of PML elements.', $path);
@@ -246,7 +252,14 @@ final class LayoutDefinition
                 throw new InvalidPmlException('Each skeleton element is a PML element.', "{$path}.{$i}");
             }
 
-            $schema?->validateNode($node, "{$path}.{$i}");
+            $named = $node['part'] ?? null;
+
+            if ($named !== null && $named !== $partKey) {
+                throw new InvalidPmlException("This skeleton element is marked part=\"{$named}\", but it belongs to the \"{$partKey}\" part.", "{$path}.{$i}.part");
+            }
+
+            $nodes[$i]['part'] = $partKey;
+            $schema?->validateNode($nodes[$i], "{$path}.{$i}");
         }
 
         return PrimitiveSchema::canonical($nodes);
