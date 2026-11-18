@@ -5,6 +5,7 @@ namespace Shirahcan\Pml\Email;
 use Shirahcan\Pml\DocToMarkdown;
 use Shirahcan\Pml\MarkdownToDoc;
 use Shirahcan\Pml\PmlParser;
+use Shirahcan\Pml\PmlTree;
 use Shirahcan\Pml\PmlScanner;
 use Shirahcan\Pml\PmlSerializer;
 use Throwable;
@@ -167,37 +168,7 @@ final class EmailBuild
      */
     public static function keepParts(array $original, array $revised): array
     {
-        $marks = [];
-        $collect = function (array $node) use (&$collect, &$marks): void {
-            if (is_string($node['uid'] ?? null) && is_string($node['part'] ?? null) && $node['part'] !== '') {
-                $marks[$node['uid']] = $node['part'];
-            }
-            foreach ((array) ($node['children'] ?? []) as $child) {
-                if (is_array($child)) {
-                    $collect($child);
-                }
-            }
-        };
-        $collect($original);
-
-        $restore = function (array $node) use (&$restore, $marks): array {
-            $part = is_string($node['part'] ?? null) && $node['part'] !== '' ? $node['part'] : (is_string($node['uid'] ?? null) ? ($marks[$node['uid']] ?? null) : null);
-            if ($part !== null) {
-                $node['part'] = $part;
-            }
-            if (is_array($node['children'] ?? null)) {
-                $node['children'] = array_map(fn ($child) => is_array($child) ? $restore($child) : $child, $node['children']);
-            }
-
-            return $node;
-        };
-        $kept = $restore($revised);
-
-        if ((! is_string($kept['part'] ?? null) || $kept['part'] === '') && is_string($original['part'] ?? null) && $original['part'] !== '') {
-            $kept['part'] = $original['part'];
-        }
-
-        return $kept;
+        return PmlTree::keepParts($original, $revised);
     }
 
     private static function isNote(mixed $node): bool
@@ -308,31 +279,13 @@ final class EmailBuild
     /** @param list<int> $path */
     private static function nodeAt(array $nodes, array $path): ?array
     {
-        $node = null;
-        $list = $nodes;
-        foreach ($path as $i) {
-            $node = $list[$i] ?? null;
-            if (! is_array($node)) {
-                return null;
-            }
-            $list = is_array($node['children'] ?? null) ? $node['children'] : [];
-        }
-
-        return $node;
+        return PmlTree::nodeAt($nodes, $path);
     }
 
     /** @param list<int> $path */
     private static function replaceAt(array $nodes, array $path, array $replacement): array
     {
-        $i = $path[0];
-        if (count($path) === 1) {
-            $nodes[$i] = $replacement;
-
-            return array_values($nodes);
-        }
-        $nodes[$i]['children'] = self::replaceAt((array) ($nodes[$i]['children'] ?? []), array_slice($path, 1), $replacement);
-
-        return array_values($nodes);
+        return PmlTree::replaceAt($nodes, $path, $replacement);
     }
 
     /**
