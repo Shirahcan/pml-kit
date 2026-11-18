@@ -2,6 +2,9 @@
 
 namespace Shirahcan\Pml;
 
+use Shirahcan\Pml\Profile\PostProfile;
+use Shirahcan\Pml\Profile\Profiles;
+
 /**
  * Renders the element definitions ({@see ElementCatalog}) as the frontend's TypeScript module (PML v3
  * l1-04a). The frontend is a separate deploy and cannot read the backend folder, so it gets a committed,
@@ -127,9 +130,48 @@ final class ElementsTypescript
             '',
             'export const ELEMENTS: Readonly<Record<ElementName, PmlElementDef>> = '.self::literal($elements, 0).';',
             '',
+            ...self::profileLines(),
         ];
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * Each purpose's pieces ({@see Profiles}, shared PML Studio P1b): the Studio and the hosts' consoles read which element
+     * binds to which document field from here, never from a copy of their own.
+     *
+     * @return list<string>
+     */
+    private static function profileLines(): array
+    {
+        $pieces = [];
+        foreach (Profiles::keys() as $key) {
+            $pieces[$key] = Profiles::for($key)->pieces() ?: new \stdClass;
+        }
+
+        return [
+            '/** A piece: an element whose words are the document\'s own fields (a post\'s title, its cover), never design text. */',
+            'export interface PmlProfilePiece {',
+            '  /** The document fields it shows and edits in its panel; empty when it shows a record or a kept value. */',
+            '  fields: readonly string[];',
+            '  /** The one field a double-click types in place. */',
+            '  quickEdit?: string;',
+            '  /** The details an ask aimed at it drafts. */',
+            '  drafts?: readonly string[];',
+            '}',
+            '',
+            '/** Every purpose a PML document can have (pml-kit Profiles). */',
+            'export const PROFILE_KEYS = '.self::literal(Profiles::keys(), 0).' as const;',
+            '',
+            'export type ProfileKey = (typeof PROFILE_KEYS)[number];',
+            '',
+            '/** Each purpose\'s pieces, by element. */',
+            'export const PROFILE_PIECES: Readonly<Record<ProfileKey, Readonly<Record<string, PmlProfilePiece>>>> = '.self::literal($pieces, 0).';',
+            '',
+            '/** What an ask aimed at a post\'s whole opening (two or more drafting pieces) drafts as well: the search details. */',
+            'export const POST_OPENING_DRAFTS = '.self::literal(PostProfile::OPENING_DRAFTS, 0).' as const;',
+            '',
+        ];
     }
 
     /** A TS literal: objects one key per line (2-space indent), lists of scalars on one line. */

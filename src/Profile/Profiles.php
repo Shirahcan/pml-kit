@@ -15,6 +15,8 @@ final class Profiles
     private const KNOWN = [
         'email' => EmailDocumentProfile::class,
         'card' => CardDocumentProfile::class,
+        'page' => PageProfile::class,
+        'post' => PostProfile::class,
     ];
 
     /** The profile for a purpose. */

@@ -32,9 +32,10 @@ interface Profile
 
     /**
      * The pieces whose words are the DOCUMENT's own fields (a post's title, its cover), by element: the fields each
-     * one edits and, when double-click edits one field in place, which. Empty when the purpose has none.
+     * one edits, when double-click edits one field in place which, and the details an ask aimed at it drafts. Empty when
+     * the purpose has none.
      *
-     * @return array<string, array{fields: list<string>, quickEdit?: string}>
+     * @return array<string, array{fields: list<string>, quickEdit?: string, drafts?: list<string>}>
      */
     public function pieces(): array;
 }
