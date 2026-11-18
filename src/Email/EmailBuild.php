@@ -121,8 +121,8 @@ final class EmailBuild
             if (count($parsed) !== 1) {
                 return ['nodes' => null, 'node' => null, 'problems' => [self::NOT_ONE_BLOCK], 'reply' => $reply, 'notes' => $notes];
             }
-            // The aimed block keeps its own notes; everything outside it is as it was.
-            $node = self::reattach([$parsed[0]], self::notesIn([$aimed]))[0] ?? $parsed[0];
+            // The aimed block keeps its own notes and its template part marks; everything outside it is as it was.
+            $node = self::keepParts($aimed, self::reattach([$parsed[0]], self::notesIn([$aimed]))[0] ?? $parsed[0]);
             $nodes = self::replaceAt($current, $path, $node);
         } else {
             $nodes = self::reattach($parsed, self::notesIn($current));
@@ -152,6 +152,52 @@ final class EmailBuild
         }
 
         return [implode(' ', $reply), $notes];
+    }
+
+    /**
+     * A revised block keeps the template's PART MARKS (0.31.1, Portify server-side landing L3): the rewrite runs in a
+     * vocabulary with no `part`, so an aimed answer can come back without `part="section"` on the block or its short
+     * answer, and the email then fails its layout check for a missing part (Portify Loop 2 on TEST, 2026-11-17). Every
+     * element keeps its id, so each mark is put back by uid, and the block's own mark on the block whatever its uid.
+     * This used to be the designer's browser-side `keepParts`; here, a worker that saves the result needs no browser.
+     *
+     * @param  array<string, mixed>  $original  the aimed block as it was
+     * @param  array<string, mixed>  $revised
+     * @return array<string, mixed>
+     */
+    public static function keepParts(array $original, array $revised): array
+    {
+        $marks = [];
+        $collect = function (array $node) use (&$collect, &$marks): void {
+            if (is_string($node['uid'] ?? null) && is_string($node['part'] ?? null) && $node['part'] !== '') {
+                $marks[$node['uid']] = $node['part'];
+            }
+            foreach ((array) ($node['children'] ?? []) as $child) {
+                if (is_array($child)) {
+                    $collect($child);
+                }
+            }
+        };
+        $collect($original);
+
+        $restore = function (array $node) use (&$restore, $marks): array {
+            $part = is_string($node['part'] ?? null) && $node['part'] !== '' ? $node['part'] : (is_string($node['uid'] ?? null) ? ($marks[$node['uid']] ?? null) : null);
+            if ($part !== null) {
+                $node['part'] = $part;
+            }
+            if (is_array($node['children'] ?? null)) {
+                $node['children'] = array_map(fn ($child) => is_array($child) ? $restore($child) : $child, $node['children']);
+            }
+
+            return $node;
+        };
+        $kept = $restore($revised);
+
+        if ((! is_string($kept['part'] ?? null) || $kept['part'] === '') && is_string($original['part'] ?? null) && $original['part'] !== '') {
+            $kept['part'] = $original['part'];
+        }
+
+        return $kept;
     }
 
     private static function isNote(mixed $node): bool

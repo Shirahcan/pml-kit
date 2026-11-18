@@ -75,6 +75,30 @@ final class EmailBuildTest extends TestCase
         $this->assertSame(array_slice($this->design(), 0, 2), array_slice($result['nodes'], 0, 2));
     }
 
+    public function test_an_aimed_rewrite_keeps_the_templates_part_marks_the_answer_dropped(): void
+    {
+        // 0.31.1: an aimed answer comes back without `part` (its vocabulary has none); the email would then fail its layout
+        // check for a missing part. The marks go back by uid, and the block's own mark on the block.
+        $design = [
+            ['uid' => 'sone01abc', 'primitive' => 'box', 'part' => 'section', 'children' => [
+                ['uid' => 'hone01abc', 'primitive' => 'heading', 'part' => 'question', 'props' => ['text' => 'Can I work?', 'level' => 2]],
+                ['uid' => 'pone01abc', 'primitive' => 'p', 'part' => 'answer', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Most can.']]]],
+            ]],
+        ];
+
+        $result = (new EmailBuild)->run($design, [0], fn () => '<box uid="sone01abc"><heading uid="hone01abc" text="Can I work after I graduate?" level="2"/>'
+            .'<p uid="pone01abc">Most graduates can apply.</p></box>'."
+".EmailBuild::REPLY_MARK."
+I made it clearer.");
+
+        $this->assertTrue($result['changed']);
+        $this->assertSame('section', $result['node']['part']);
+        $this->assertSame('question', $result['node']['children'][0]['part']);
+        $this->assertSame('answer', $result['node']['children'][1]['part']);
+        $this->assertSame('section', $result['nodes'][0]['part'], 'the whole email carries them too: that is what a worker saves');
+        $this->assertSame('Can I work after I graduate?', $result['nodes'][0]['children'][0]['props']['text']);
+    }
+
     public function test_what_the_email_profile_refuses_gets_one_repair_and_a_second_refusal_changes_nothing(): void
     {
         $asks = [];
