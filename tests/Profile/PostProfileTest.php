@@ -98,7 +98,6 @@ final class PostProfileTest extends TestCase
             'the opening' => [['primitive' => 'post_header', 'children' => [$piece('post_category'), $piece('post_title'), $piece('post_dek'), $piece('post_author')]]],
             'a box of title and dek' => [['primitive' => 'box', 'children' => [$piece('post_title'), $piece('post_dek')]]],
             'a box of date and read time' => [['primitive' => 'box', 'children' => [$piece('post_date'), $piece('post_read_time')]]],
-            'a box with a comment beside a piece' => [['primitive' => 'box', 'children' => [['comment' => 'x'], $piece('post_title')]]],
             'a paragraph' => [['primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'x']]]]],
             'an empty box' => [['primitive' => 'box', 'children' => []]],
             'a section holding the title and words' => [['primitive' => 'box', 'children' => [$piece('post_title'), ['primitive' => 'p']]]],
@@ -123,6 +122,16 @@ final class PostProfileTest extends TestCase
         $this->assertStringContainsString("  page: {},", $ts);
         $this->assertStringContainsString("export const POST_OPENING_DRAFTS = ['meta_description', 'secondary_keywords'] as const;", $ts);
         $this->assertSame($ts, ElementsTypescript::render(), 'deterministic');
+    }
+
+    public function test_a_comment_pinned_inside_the_opening_does_not_make_it_design_text(): void
+    {
+        $opening = ['primitive' => 'box', 'children' => [['comment' => 'Check the title', 'note' => ['id' => 'n1']], ['primitive' => 'post_date'], ['primitive' => 'post_author']]];
+        $profile = new PostProfile();
+
+        $this->assertTrue($profile->onlyPieces($opening), 'a note is never an element (0.30.1)');
+        $this->assertFalse(self::todaysOnlyPostPieces($opening), 'the copy it replaces counted the note: the one deliberate difference');
+        $this->assertSame([], $profile->draftsFor($opening));
     }
 
     public function test_the_whole_opening_drafts_the_search_details_too(): void

@@ -4,6 +4,7 @@ namespace Shirahcan\Pml\Profile;
 
 use Shirahcan\Pml\Blocks\BlockSchema;
 use Shirahcan\Pml\InvalidPmlException;
+use Shirahcan\Pml\PmlParser;
 use Shirahcan\Pml\PrimitiveSchema;
 
 /**
@@ -100,7 +101,9 @@ final class PostProfile implements Profile
 
     /**
      * Whether a block shows only the post's details: a piece itself, or a block whose children are all such blocks (the
-     * opening). An ask is never aimed at one unless it holds something Porter drafts ({@see draftsFor()}).
+     * opening). An ask is never aimed at one unless it holds something Porter drafts ({@see draftsFor()}). A comment
+     * pinned inside it is the author's note, never an element, so it does not make the opening design text (0.30.1:
+     * the console server and the host's canAskAbout counted it; the Studio's bar did not).
      *
      * @param  array<string, mixed>  $node
      */
@@ -109,7 +112,7 @@ final class PostProfile implements Profile
         if (isset(self::PIECES[(string) ($node['primitive'] ?? '')])) {
             return true;
         }
-        $children = array_values(array_filter((array) ($node['children'] ?? []), 'is_array'));
+        $children = array_values(array_filter((array) ($node['children'] ?? []), fn ($child) => is_array($child) && ! PmlParser::isCommentNode($child)));
 
         return $children !== [] && array_reduce($children, fn (bool $all, array $child) => $all && $this->onlyPieces($child), true);
     }
