@@ -84,6 +84,18 @@ final class CardFrame
      */
     public static function violations(array $nodes, string $at = ''): array
     {
+        return array_column(self::findings($nodes, $at), 'text');
+    }
+
+    /**
+     * The same findings with where each is and its kind, the shape every profile shares (shared PML Studio P1a,
+     * {@see \Shirahcan\Pml\Profile\CardDocumentProfile}). {@see violations()} is these sentences, unchanged.
+     *
+     * @param  list<array<string, mixed>>  $nodes
+     * @return list<array{code: string, at: string, text: string}>
+     */
+    public static function findings(array $nodes, string $at = ''): array
+    {
         $found = [];
 
         foreach (array_values($nodes) as $i => $node) {
@@ -95,13 +107,13 @@ final class CardFrame
             }
 
             if (! in_array($name, self::ELEMENTS, true)) {
-                $found[] = "<{$name}> (at {$where}) cannot be on a card. A card holds only: ".implode(', ', self::ELEMENTS).'.';
+                $found[] = ['code' => 'element', 'at' => $where, 'text' => "<{$name}> (at {$where}) cannot be on a card. A card holds only: ".implode(', ', self::ELEMENTS).'.'];
 
                 continue;
             }
 
             if (isset($node['children']) && is_array($node['children'])) {
-                $found = [...$found, ...self::violations($node['children'], $where)];
+                $found = [...$found, ...self::findings($node['children'], $where)];
             }
         }
 
