@@ -325,7 +325,7 @@ class PmlScanner
     private function flushRun(array &$nodes, string $text): void
     {
         if ($text !== '') {
-            $nodes[] = ['#run' => $text];
+            $nodes[] = ['#run' => self::characters($text)];
         }
     }
 
@@ -337,8 +337,20 @@ class PmlScanner
         // Whitespace-only runs between tags are insignificant and dropped. Real Markdown text
         // is kept verbatim as a marker for 0b2 to parse.
         if (trim($text) !== '') {
-            $nodes[] = ['#text' => $text];
+            $nodes[] = ['#text' => self::characters($text)];
         }
+    }
+
+    /**
+     * An HTML entity written in words or a quoted value (`&quot;`, `&amp;`, `&#39;`, `&rsquo;`) is read as its character
+     * (0.32.1, 2026-11-18): PML escapes with a backslash, so an entity is never markup here, but a writer who knows HTML
+     * (a person, or the model writing a Build) puts them in, and they reached readers as text: an FAQ question read
+     * `What does &quot;LMIA requested&quot; mean?` on a published post. A raw body (code, pre) is read elsewhere and kept
+     * verbatim; a lone `&` ("Q&A", "R&D") is not an entity and stays.
+     */
+    private static function characters(string $words): string
+    {
+        return str_contains($words, '&') ? html_entity_decode($words, ENT_QUOTES | ENT_HTML5, 'UTF-8') : $words;
     }
 
     /**
@@ -769,7 +781,7 @@ class PmlScanner
             $ch = $this->advance();
 
             if ($ch === '"') {
-                return $out;
+                return self::characters($out);
             }
 
             if ($ch === '\\' && ! $this->eof()) {
