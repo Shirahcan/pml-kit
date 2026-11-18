@@ -5,14 +5,17 @@ namespace Shirahcan\Pml\Layout;
 use Shirahcan\Pml\PmlParser;
 
 /**
- * Does a document follow its layout? (post layouts A3, owner 2026-11-16: "lock on structure only".)
+ * Does a document follow its layout? Deterministic, no AI.
  *
- * Deterministic, no AI. BLOCKS publishing only for structure: a required part missing, a repeating part outside its
- * count (the FAQs: exactly the layout's number), the calls to action out of stage order (awareness, consideration,
- * decision), a `[VERIFY` marker left anywhere (old posts), a note starting "VERIFY" (`layout.verify_note`, 0.27.3: how
- * a figure to check is written now), or a part still holding its template's bracketed example words
- * (`layout.unfilled`, 0.27.0: a post must never publish reading "[The question the post answers]"). Everything else (word and character counts, a call to action
- * outside the part it may move in) WARNS and never blocks.
+ * The template's STRUCTURE is advice (owner 2026-11-18, 0.30.2, reversing 2026-11-16's "lock on structure only": every
+ * element can be edited, moved and deleted, and a removed template part "only produce[s] a warning at Publish"). So a
+ * required part missing, a repeating part outside its count, a part outside the part it belongs in, the calls to action
+ * out of stage order, word and character counts and a part outside its range all WARN.
+ *
+ * Publishing is BLOCKED only for what would mislead a reader: a `[VERIFY` marker left anywhere (old posts), an open note
+ * starting "VERIFY" (`layout.verify_note`, 0.27.3; a resolved one is settled), or a part still holding its template's
+ * bracketed example words (`layout.unfilled`, 0.27.0: a post must never publish reading "[The question the post
+ * answers]"). The claims compliance check is separate and blocks on its own.
  *
  * Findings use the builder's preflight shape (pml-ui `DocumentFinding`: source, severity, rule, message, excerpt,
  * suggestion), plus `part` so the designer can jump to it.
@@ -46,16 +49,16 @@ final class LayoutChecks
 
                 if ($count < $part['min'] || ($max !== null && $count > $max)) {
                     $want = $max === $part['min'] ? "exactly {$max}" : ($max === null ? "at least {$part['min']}" : "{$part['min']} to {$max}");
-                    $findings[] = self::finding('block', 'layout.repeat_count', $part, "{$part['label']}: this layout takes {$want}, the post has {$count}.", $count < $part['min'] ? "Add {$part['label']} until there are {$want}." : "Remove {$part['label']} until there are {$want}.");
+                    $findings[] = self::finding('warn', 'layout.repeat_count', $part, "{$part['label']}: this layout takes {$want}, the post has {$count}.", $count < $part['min'] ? "Add {$part['label']} until there are {$want}." : "Remove {$part['label']} until there are {$want}.");
                 }
 
                 foreach ($at as $instance) {
                     if (isset($part['inside']) && ! in_array($part['inside'], $instance['ancestors'], true)) {
-                        $findings[] = self::finding('block', 'layout.outside_its_part', $part, "{$part['label']} sits outside the part it belongs in.", 'Move it back inside '.(($layout->part($part['inside'])['label'] ?? $part['inside'])).'.');
+                        $findings[] = self::finding('warn', 'layout.outside_its_part', $part, "{$part['label']} sits outside the part it belongs in.", 'Move it back inside '.(($layout->part($part['inside'])['label'] ?? $part['inside'])).'.');
                     }
                 }
             } elseif ($count === 0 && $part['required']) {
-                $findings[] = self::finding('block', 'layout.part_missing', $part, "{$part['label']} is missing.", "Add {$part['label']} back in its place.");
+                $findings[] = self::finding('warn', 'layout.part_missing', $part, "{$part['label']} is missing.", "Add {$part['label']} back in its place.");
             }
 
             $examples = self::examples($part);
@@ -101,7 +104,7 @@ final class LayoutChecks
             }
 
             if ($previous !== null && $first[$stage]['position'] < $previous['position']) {
-                $findings[] = self::finding('block', 'layout.cta_order', $first[$stage]['part'], "{$first[$stage]['part']['label']} comes before the {$previous['part']['stage']} call to action.", 'Order the calls to action awareness, then consideration, then decision.');
+                $findings[] = self::finding('warn', 'layout.cta_order', $first[$stage]['part'], "{$first[$stage]['part']['label']} comes before the {$previous['part']['stage']} call to action.", 'Order the calls to action awareness, then consideration, then decision.');
             } else {
                 $previous = $first[$stage];
             }

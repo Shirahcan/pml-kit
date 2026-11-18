@@ -67,7 +67,7 @@ class LayoutChecksTest extends TestCase
         $this->assertSame([], $result['findings']);
     }
 
-    public function test_a_missing_part_and_a_wrong_faq_count_block_and_say_the_fix(): void
+    public function test_a_missing_part_and_a_wrong_faq_count_warn_and_say_the_fix_but_never_block(): void
     {
         $post = $this->complete();
         unset($post[6]); // the decision call to action
@@ -75,24 +75,26 @@ class LayoutChecksTest extends TestCase
 
         $result = LayoutChecks::check($this->layout(), array_values($post));
 
-        $this->assertFalse($result['mayPublish']);
-        $this->assertSame(['layout.part_missing:cta-decision', 'layout.repeat_count:faq-item'], $this->rules($result, 'block'));
+        // Structure is advice (owner 2026-11-18): every element can be removed, and a removed part only warns.
+        $this->assertTrue($result['mayPublish']);
+        $this->assertSame([], $this->rules($result, 'block'));
+        $this->assertSame(['layout.part_missing:cta-decision', 'layout.repeat_count:faq-item'], $this->rules($result, 'warn'));
         $count = array_values(array_filter($result['findings'], static fn ($f) => $f['rule'] === 'layout.repeat_count'))[0];
         $this->assertSame('FAQ: this layout takes exactly 3, the post has 2.', $count['message']);
         $this->assertSame('Add FAQ until there are exactly 3.', $count['suggestion']);
         $this->assertSame('layout', $count['source']);
     }
 
-    public function test_calls_to_action_out_of_stage_order_block(): void
+    public function test_calls_to_action_out_of_stage_order_warn(): void
     {
         $post = $this->complete();
         [$post[2], $post[6]] = [$post[6], $post[2]]; // decision first, awareness late
 
         $result = LayoutChecks::check($this->layout(), $post);
 
-        $this->assertFalse($result['mayPublish']);
+        $this->assertTrue($result['mayPublish'], 'the order is advice');
         // The first consideration and the first decision both appear before the first awareness.
-        $this->assertSame(['layout.cta_order:cta-consideration', 'layout.cta_order:cta-decision'], $this->rules($result, 'block'));
+        $this->assertSame(['layout.cta_order:cta-consideration', 'layout.cta_order:cta-decision'], $this->rules($result, 'warn'));
     }
 
     public function test_a_later_ask_box_after_the_decision_call_to_action_is_the_reference_layout_not_a_mistake(): void
@@ -122,13 +124,13 @@ class LayoutChecksTest extends TestCase
         $this->assertStringContainsString('The fee is [VERIFY OFFICIAL IRCC DATA]', $markers[0]['excerpt']);
     }
 
-    public function test_an_faq_outside_its_part_blocks(): void
+    public function test_an_faq_outside_its_part_warns(): void
     {
         $post = $this->complete();
         $post[] = self::marked('faq-item', [self::text('A stray answer.')]);
         array_pop($post[7]['children']);
 
-        $this->assertContains('layout.outside_its_part:faq-item', $this->rules(LayoutChecks::check($this->layout(), $post), 'block'));
+        $this->assertContains('layout.outside_its_part:faq-item', $this->rules(LayoutChecks::check($this->layout(), $post), 'warn'));
     }
 
     public function test_right_after_the_last_section_is_inside_and_a_data_block_may_move_too(): void
