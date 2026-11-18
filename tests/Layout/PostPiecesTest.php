@@ -108,6 +108,23 @@ final class PostPiecesTest extends TestCase
         $this->assertSame('2026-11-15T09:00:00Z', $baked[2]['children'][0]['props']['resolved']['updated_at']);
     }
 
+    public function test_the_summary_and_the_sources_list_bake_the_posts_own_summary_and_sources(): void
+    {
+        $this->assertTrue(ElementCatalog::has('post_summary'));
+        $this->assertTrue(ElementCatalog::has('post_sources'));
+
+        $tree = [['primitive' => 'post_summary', 'props' => []], ['primitive' => 'post_sources', 'props' => []]];
+        $post = [
+            'answer' => 'Most graduates of an eligible program can apply within 180 days of their final marks.',
+            'sources' => [['label' => 'IRCC: Post-graduation work permit', 'url' => 'https://www.canada.ca/pgwp']],
+        ];
+
+        $baked = self::builder()->snapshot($tree, ['post' => $post])['tree'];
+
+        $this->assertSame($post['answer'], $baked[0]['props']['resolved']['answer']);
+        $this->assertSame($post['sources'], $baked[1]['props']['resolved']['sources']);
+    }
+
     public function test_a_skeletons_purpose_note_is_kept_by_the_starter_and_never_checked(): void
     {
         $layout = LayoutDefinition::fromArray(['key' => 'classic', 'name' => 'Classic', 'kind' => 'post', 'parts' => [

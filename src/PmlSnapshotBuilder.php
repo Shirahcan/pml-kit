@@ -272,6 +272,9 @@ class PmlSnapshotBuilder
         'post_breadcrumbs', 'post_title', 'post_dek', 'post_author', 'post_date', 'post_read_time', 'post_reviewer', 'post_tags',
         // 0.27.0 (T2b, the reference studio): the category pill, and the trust badges row with its two badges.
         'post_category', 'post_badges', 'post_reviewer_badge', 'post_sources_badge',
+        // 0.31.0 (owner 2026-11-18, a post renders exactly as designed): the summary under the title (the paragraph
+        // search engines and assistants quote) and the sources list with its links, both drawn from the post's fields.
+        'post_summary', 'post_sources',
     ];
 
     /**
@@ -287,7 +290,8 @@ class PmlSnapshotBuilder
         // `blog_url` (the blog's own address, for breadcrumbs) and `updated_at` (when readers last saw a change, for
         // post_date kind="updated") since 0.26.0.
         // `home_url` (the site's root, the first breadcrumb "Home > Blog > Category") since 0.27.0.
-        $keep = ['title', 'dek', 'category', 'tags', 'author_name', 'published_at', 'updated_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources', 'blog_url', 'home_url'];
+        // `answer` (the post's summary, for post_summary) since 0.31.0.
+        $keep = ['title', 'dek', 'answer', 'category', 'tags', 'author_name', 'published_at', 'updated_at', 'read_minutes', 'reviewer', 'last_verified_at', 'cover', 'related', 'sources', 'blog_url', 'home_url'];
         $out = [];
 
         foreach ($keep as $field) {

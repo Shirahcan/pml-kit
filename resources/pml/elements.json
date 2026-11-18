@@ -290,6 +290,10 @@
             "container": false,
             "props": {}
         },
+        "post_summary": {
+            "container": false,
+            "props": {}
+        },
         "post_meta": {
             "container": true,
             "children": ["post_author", "post_date", "post_read_time", "post_reviewer"],
@@ -328,6 +332,10 @@
             "props": {
                 "heading": { "type": "prose" }
             }
+        },
+        "post_sources": {
+            "container": false,
+            "props": {}
         },
         "post_disclaimer": {
             "container": false,

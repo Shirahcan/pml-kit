@@ -77,12 +77,12 @@ final class PostProfileTest extends TestCase
         $this->assertEqualsCanonicalizing([
             'post_title' => ['title'], 'post_dek' => ['dek'], 'post_author' => ['author_name'], 'post_category' => ['category_id'],
             'post_cover' => ['cover'], 'post_tags' => ['tags'], 'post_story' => ['story_id'], 'post_sources_badge' => ['facts'],
-            'post_cta' => ['cta_kind', 'cta_ref'],
+            'post_cta' => ['cta_kind', 'cta_ref'], 'post_summary' => ['answer'], 'post_sources' => ['facts'],
         ], $fields);
-        $this->assertEqualsCanonicalizing(['post_title' => 'title', 'post_dek' => 'dek', 'post_author' => 'author_name'], $quick);
+        $this->assertEqualsCanonicalizing(['post_title' => 'title', 'post_dek' => 'dek', 'post_author' => 'author_name', 'post_summary' => 'answer'], $quick);
         $this->assertEqualsCanonicalizing([
             'post_title' => ['title', 'meta_title', 'focus_keyword'], 'post_dek' => ['dek', 'answer'],
-            'post_category' => ['category_id'], 'post_tags' => ['tags'],
+            'post_category' => ['category_id'], 'post_tags' => ['tags'], 'post_summary' => ['answer'],
         ], $drafts);
     }
 
