@@ -39,6 +39,8 @@ final class LayoutChecks
 
         $findings = [];
         $order = [];
+        // A part inside a repeating part (a question section's short answer) is once PER instance, never "twice".
+        $repeats = array_values(array_map(static fn (array $p) => $p['key'], array_filter($layout->parts, static fn (array $p) => $p['kind'] === 'repeat')));
 
         foreach ($layout->parts as $part) {
             $at = $found[$part['key']] ?? [];
@@ -59,6 +61,11 @@ final class LayoutChecks
                 }
             } elseif ($count === 0 && $part['required']) {
                 $findings[] = self::finding('warn', 'layout.part_missing', $part, "{$part['label']} is missing.", "Add {$part['label']} back in its place.");
+            } elseif ($count > 1 && ($count = count(array_filter($at, static fn (array $i) => array_intersect($i['ancestors'], $repeats) === []))) > 1) {
+                // A part the layout has ONCE appears twice (0.33.2, Porter T3: a whole-post rewrite that restarted
+                // mid-answer left a post with two covers). Readers would see both, so it holds Publish; it is never an
+                // editor lock (owner 2026-11-18: template rules are Publish checks).
+                $findings[] = self::finding('block', 'layout.part_twice', $part, "{$part['label']} appears {$count} times; this layout has one.", "Remove the extra {$part['label']}.");
             }
 
             $examples = self::examples($part);

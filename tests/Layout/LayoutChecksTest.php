@@ -67,6 +67,18 @@ class LayoutChecksTest extends TestCase
         $this->assertSame([], $result['findings']);
     }
 
+    public function test_a_part_the_layout_has_once_appearing_twice_holds_publish(): void
+    {
+        $twice = $this->complete();
+        array_splice($twice, 1, 0, [self::marked('header')]);
+
+        $result = LayoutChecks::check($this->layout(), $twice, ['title' => 'Canada Express Entry 2026']);
+
+        $this->assertFalse($result['mayPublish']);
+        $this->assertSame(['layout.part_twice:header'], $this->rules($result, 'block'));
+        $this->assertStringContainsString('Post header appears 2 times; this layout has one.', $result['findings'][0]['message']);
+    }
+
     public function test_a_missing_part_and_a_wrong_faq_count_warn_and_say_the_fix_but_never_block(): void
     {
         $post = $this->complete();
