@@ -99,6 +99,30 @@ class LayoutSampleTest extends TestCase
         }
     }
 
+    public function test_a_canvas_gets_only_its_unchosen_pictures_marked(): void
+    {
+        $nodes = [
+            ['primitive' => 'image', 'props' => ['src' => '{{hero_image_url}}', 'alt' => '[Describe the photo]']],
+            ['primitive' => 'stack', 'children' => [
+                ['primitive' => 'image', 'props' => ['src' => '']],
+                ['primitive' => 'image', 'props' => ['src' => 'https://example.com/chosen.jpg']],
+                ['primitive' => 'text', 'props' => ['value' => '[What goes here]']],
+            ]],
+            ['comment' => 'Purpose: the opening.'],
+        ];
+
+        $drawn = LayoutSample::pictures($nodes);
+
+        $this->assertSame(LayoutSample::PICTURE, $drawn[0]['props']['src']);
+        $this->assertSame('[Describe the photo]', $drawn[0]['props']['alt'], 'words are left as they are');
+        $this->assertSame(LayoutSample::PICTURE, $drawn[1]['children'][0]['props']['src']);
+        $this->assertSame('https://example.com/chosen.jpg', $drawn[1]['children'][1]['props']['src'], 'a chosen picture is kept');
+        $this->assertSame('[What goes here]', $drawn[1]['children'][2]['props']['value']);
+        $this->assertSame(['comment' => 'Purpose: the opening.'], $drawn[2], 'notes are kept');
+        $this->assertTrue(LayoutSample::isUnchosenPicture('{{ cover_url }}'));
+        $this->assertFalse(LayoutSample::isUnchosenPicture('https://example.com/a.png'));
+    }
+
     public function test_words_a_template_keeps_are_shown_as_they_are(): void
     {
         $layout = $this->fixture('post.full-guide.json');

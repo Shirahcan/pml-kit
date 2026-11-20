@@ -46,6 +46,39 @@ final class LayoutSample
         return self::walk($layout->starter(), false, $count);
     }
 
+    /** A picture its author has not chosen yet: no address, or one still waiting for its variable (`{{hero_image_url}}`). */
+    public static function isUnchosenPicture(mixed $src): bool
+    {
+        $src = trim(is_string($src) ? $src : '');
+
+        return $src === '' || preg_match('/^\{\{\s*[A-Za-z0-9_.]+\s*\}\}$/', $src) === 1;
+    }
+
+    /**
+     * Only the pictures of a design, for a canvas: every picture not chosen yet takes `PICTURE` (the renderer draws its
+     * product's sample picture), so a designer shows where a picture goes instead of a broken one. Words, notes and
+     * everything else are left exactly as they are; this is for drawing, never for saving.
+     *
+     * @param  list<mixed>  $nodes
+     * @return list<mixed>
+     */
+    public static function pictures(array $nodes): array
+    {
+        foreach ($nodes as $i => $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+            if (($node['primitive'] ?? null) === 'image' && self::isUnchosenPicture($node['props']['src'] ?? '')) {
+                $nodes[$i]['props']['src'] = self::PICTURE;
+            }
+            if (is_array($node['children'] ?? null)) {
+                $nodes[$i]['children'] = self::pictures($node['children']);
+            }
+        }
+
+        return $nodes;
+    }
+
     /**
      * @param  list<mixed>  $nodes
      * @return list<array<string, mixed>>
@@ -64,8 +97,7 @@ final class LayoutSample
                 $node['props']['value'] = $heading ? self::heading($count++) : self::paragraph($node['props']['value'], $count++);
             }
             // An empty picture, or one still waiting for its variable ({{hero_image_url}}), draws the sample picture.
-            $src = trim((string) ($node['props']['src'] ?? ''));
-            if ($primitive === 'image' && ($src === '' || preg_match('/^\{\{\s*[A-Za-z0-9_.]+\s*\}\}$/', $src) === 1)) {
+            if ($primitive === 'image' && self::isUnchosenPicture($node['props']['src'] ?? '')) {
                 $node['props']['src'] = self::PICTURE;
             }
             foreach ((array) ($node['props'] ?? []) as $prop => $value) {

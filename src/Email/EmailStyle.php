@@ -42,6 +42,17 @@ final class EmailStyle
         $this->colors = [...self::DEFAULT_COLORS, ...array_filter($brand->colors(), fn ($v) => is_string($v) && preg_match('/^#[0-9a-f]{3,8}$/i', $v) === 1)];
     }
 
+    /**
+     * Every colour the email is drawn with (the brand's over the defaults), so an editor's canvas can wear exactly what
+     * the sent email will: the same accent on its buttons, the same text and surfaces.
+     *
+     * @return array<string, string>
+     */
+    public function palette(): array
+    {
+        return $this->colors;
+    }
+
     public function color(string $key): string
     {
         return $this->colors[$key] ?? self::DEFAULT_COLORS[$key] ?? '#1F2937';
