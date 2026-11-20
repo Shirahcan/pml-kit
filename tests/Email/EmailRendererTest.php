@@ -59,7 +59,7 @@ final class EmailRendererTest extends TestCase
         $this->assertStringContainsString('Heads up', $html);
         $this->assertStringContainsString('class="pml-email-button" bgcolor="#4361EE"', $html, 'a bulletproof button');
         $this->assertStringContainsString('class="pml-email-button" bgcolor="#4361EE" style="border-radius:9999px;', $html, 'a button is a pill (owner 2026-11-20)');
-        $this->assertStringNotContainsString('border-radius:8px">', $html, 'no 8px button link left');
+        $this->assertStringContainsString('text-decoration:none;border-radius:9999px">', $html, 'the button link is a pill too');
         $this->assertStringContainsString('alt="A picture" width="240"', $html);
         $this->assertSame(2, substr_count($html, 'class="pml-email-col"'), 'two columns');
         $this->assertStringContainsString('<strong>bold</strong>', $html);
