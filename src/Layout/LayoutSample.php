@@ -74,7 +74,8 @@ final class LayoutSample
                 }
                 $node['props'][$prop] = match (true) {
                     $prop === 'alt' => 'A photo that sets the scene',
-                    in_array($prop, ['heading', 'question', 'title', 'label'], true) => self::heading($count++),
+                    // A heading's own words (`<heading text=...>`) read as a heading, so the contents list is headings too.
+                    $heading || in_array($prop, ['heading', 'question', 'title', 'label'], true) => self::heading($count++),
                     default => self::paragraph($value, $count++),
                 };
             }

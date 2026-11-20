@@ -76,6 +76,29 @@ class LayoutSampleTest extends TestCase
         $this->assertSame($starterParts, $parts($sample), 'the same parts, in the same order');
     }
 
+    public function test_a_headings_guidance_becomes_a_heading_short_line(): void
+    {
+        $sample = LayoutSample::nodes($this->fixture('post.full-guide.json'));
+        $headings = [];
+        $walk = function (array $nodes) use (&$walk, &$headings) {
+            foreach ($nodes as $n) {
+                if (is_array($n) && ($n['primitive'] ?? null) === 'heading' && is_string($n['props']['text'] ?? null)) {
+                    $headings[] = $n['props']['text'];
+                }
+                if (is_array($n['children'] ?? null)) {
+                    $walk($n['children']);
+                }
+            }
+        };
+        $walk($sample);
+
+        $this->assertNotSame([], $headings);
+        foreach ($headings as $text) {
+            $this->assertLessThanOrEqual(40, mb_strlen($text), "a heading, not a paragraph: {$text}");
+            $this->assertStringNotContainsString('.', $text);
+        }
+    }
+
     public function test_words_a_template_keeps_are_shown_as_they_are(): void
     {
         $layout = $this->fixture('post.full-guide.json');
