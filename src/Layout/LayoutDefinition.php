@@ -166,6 +166,17 @@ final class LayoutDefinition
         return $nodes;
     }
 
+    /**
+     * A layout read back from a design whose parts are marked (growth templates A1): see {@see LayoutFromDesign}.
+     *
+     * @param  list<array<string, mixed>>  $nodes
+     * @param  string  $words  `keep` the design's words as example text, or turn them into `guidance`
+     */
+    public static function fromDesign(array $nodes, string $key, string $name, string $kind, string $words, ?self $from = null): self
+    {
+        return LayoutFromDesign::build($nodes, $key, $name, $kind, $words, $from);
+    }
+
     /** The definition in one canonical form: the same layout always writes the same array. */
     public function toArray(): array
     {
