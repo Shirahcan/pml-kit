@@ -9,6 +9,13 @@ namespace Shirahcan\Pml\Email;
  */
 final class EmailBlocks
 {
+    /**
+     * A button is a pill (owner 2026-11-20: "the buttons are still not rounded (pills)"), the same as the editor canvas's
+     * default (`--site-button-radius`, 9999px), so the canvas and the inbox agree. Clients without border-radius (desktop
+     * Outlook) draw a square, as before.
+     */
+    private const BUTTON_RADIUS = '9999px';
+
     private const TONE_COLOR = ['info' => 'info', 'tip' => 'tip', 'success' => 'success', 'warning' => 'warning', 'danger' => 'danger'];
 
     public function __construct(private readonly EmailStyle $style) {}
@@ -117,10 +124,10 @@ final class EmailBlocks
         $bg = $primary ? $this->style->color('accent') : $this->style->color('card');
         $fg = $primary ? $this->style->color('on_accent') : $this->style->color('accent');
         $align = in_array($style['align'] ?? null, ['left', 'center', 'right'], true) ? $style['align'] : 'left';
-        $a = '<a href="'.self::h((string) ($props['href'] ?? '')).'" style="display:inline-block;padding:12px 24px;'.$font.';font-size:16px;font-weight:600;color:'.$fg.';text-decoration:none;border-radius:8px">'.self::h((string) ($props['label'] ?? '')).'</a>';
+        $a = '<a href="'.self::h((string) ($props['href'] ?? '')).'" style="display:inline-block;padding:12px 24px;'.$font.';font-size:16px;font-weight:600;color:'.$fg.';text-decoration:none;border-radius:'.self::BUTTON_RADIUS.'">'.self::h((string) ($props['label'] ?? '')).'</a>';
 
         return '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px"><tr><td align="'.$align.'">'
-            .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="pml-email-button'.($primary ? '' : ' pml-email-button-secondary').'" bgcolor="'.$bg.'" style="border-radius:8px;background-color:'.$bg.';border:1px solid '.$this->style->color('accent').'">'.$a.'</td></tr></table>'
+            .'<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td class="pml-email-button'.($primary ? '' : ' pml-email-button-secondary').'" bgcolor="'.$bg.'" style="border-radius:'.self::BUTTON_RADIUS.';background-color:'.$bg.';border:1px solid '.$this->style->color('accent').'">'.$a.'</td></tr></table>'
             .'</td></tr></table>';
     }
 
