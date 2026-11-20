@@ -83,6 +83,41 @@ class LayoutFromDesignTest extends TestCase
         $this->assertSame(self::texts($layout->part('hook')['skeleton']), self::texts($guided->part('hook')['skeleton']), 'the hook says what goes there again');
     }
 
+    public function test_a_headings_words_become_its_templates_guidance_or_name_the_part(): void
+    {
+        $headings = static function (array $nodes) use (&$headings): array {
+            $out = [];
+            foreach ($nodes as $n) {
+                if (is_array($n) && ($n['primitive'] ?? null) === 'heading' && is_string($n['props']['text'] ?? null)) {
+                    $out[] = $n['props']['text'];
+                }
+                if (is_array($n['children'] ?? null)) {
+                    $out = [...$out, ...$headings($n['children'])];
+                }
+            }
+
+            return $out;
+        };
+        $layout = $this->fullGuide();
+        $withHeading = array_values(array_filter($layout->parts, static fn (array $p) => $headings($p['skeleton']) !== []));
+        $this->assertNotSame([], $withHeading, 'the fixture has a part with a heading');
+        $key = $withHeading[0]['key'];
+
+        // A real post: its heading carries the writer's question, and it has a part its template never had.
+        $post = PinnedNotes::pin($layout->starter());
+        array_walk_recursive($post, static function (&$v, $k) {
+            if ($k === 'text' && is_string($v)) {
+                $v = 'What is an LMIA, and is it my work permit?';
+            }
+        });
+        $post[] = ['primitive' => 'heading', 'part' => 'checklist', 'props' => ['level' => 2, 'text' => 'Your document checklist']];
+
+        $guided = LayoutDefinition::fromDesign($post, 'from-post', 'From a post', 'post', 'guidance', $layout);
+
+        $this->assertSame($headings($layout->part($key)['skeleton']), $headings($guided->part($key)['skeleton']), 'the heading says what goes there, in its template\'s words');
+        $this->assertSame(['[The checklist heading]'], $headings($guided->part('checklist')['skeleton']), 'a new part names itself, never a bare "[Text]"');
+    }
+
     public function test_a_post_with_more_question_sections_keeps_one_repeating_part_and_its_counts(): void
     {
         $layout = $this->fullGuide();

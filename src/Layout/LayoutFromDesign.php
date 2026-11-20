@@ -92,7 +92,7 @@ final class LayoutFromDesign
             $label = $known['label'] ?? ucfirst(str_replace(['-', '_'], ' ', $partKey));
             // Words are only ever a writer's in a fill or repeating part; the post's own parts keep what they draw.
             $partWords = in_array($known['kind'] ?? 'fill', ['fill', 'repeat'], true) ? $words : 'keep';
-            $skeleton = [...self::once($notes[$partKey] ?? []), ...self::clean($first, $partWords, self::guidanceOf($known, $label))];
+            $skeleton = [...self::once($notes[$partKey] ?? []), ...self::clean($first, $partWords, self::guidanceOf($known, $label), self::propGuidanceOf($known), $label)];
             $parts[] = self::part($partKey, $label, $known, $count, $skeleton, $instances[$partKey], $instances);
 
             // A part that lives inside this one is listed after it, as its layout had it: one that says `inside` (an FAQ
@@ -105,7 +105,7 @@ final class LayoutFromDesign
                 $nested = self::firstNested($first, $inner['key']);
                 if (($inner['inside'] ?? null) === $partKey) {
                     // Empty when its layout's was (the parent's skeleton holds the instances), else the design's first one.
-                    $innerSkeleton = $inner['skeleton'] === [] ? [] : ($nested !== null ? self::clean([$nested], $words, self::guidanceOf($inner, $inner['label'])) : $inner['skeleton']);
+                    $innerSkeleton = $inner['skeleton'] === [] ? [] : ($nested !== null ? self::clean([$nested], $words, self::guidanceOf($inner, $inner['label']), self::propGuidanceOf($inner), (string) $inner['label']) : $inner['skeleton']);
                 } elseif ($nested !== null && $inner['skeleton'] === []) {
                     $innerSkeleton = [];
                 } else {
@@ -175,12 +175,14 @@ final class LayoutFromDesign
      *
      * @param  list<array<string, mixed>>  $nodes
      * @param  list<string>  $guidance
+     * @param  array<string, list<string>>  $propGuidance  the skeleton's prose props by "element.prop", in order
      * @return list<array<string, mixed>>
      */
-    private static function clean(array $nodes, string $words, array $guidance): array
+    private static function clean(array $nodes, string $words, array $guidance, array $propGuidance = [], string $label = ''): array
     {
         $at = 0;
-        $walk = function (array $list) use (&$walk, $words, $guidance, &$at): array {
+        $propAt = [];
+        $walk = function (array $list) use (&$walk, $words, $guidance, &$at, $propGuidance, &$propAt, $label): array {
             $out = [];
             foreach ($list as $node) {
                 if (! is_array($node)) {
@@ -201,9 +203,15 @@ final class LayoutFromDesign
                     } elseif ($primitive === 'image') {
                         unset($node['props']['src']);
                     }
+                    // A prose prop (a heading's words) takes its template's guidance for the same element and prop, in
+                    // order, as text does; a part its template never had names itself instead of a bare "[Text]".
                     foreach ((array) ($node['props'] ?? []) as $prop => $value) {
                         if ($prop !== 'value' && is_string($value) && trim($value) !== '' && (ElementCatalog::prop($primitive, (string) $prop)['type'] ?? null) === 'prose') {
-                            $node['props'][$prop] = '['.ucfirst(str_replace('_', ' ', (string) $prop)).']';
+                            $key = $primitive.'.'.$prop;
+                            $known = $propGuidance[$key] ?? [];
+                            $i = $propAt[$key] ?? 0;
+                            $propAt[$key] = $i + 1;
+                            $node['props'][$prop] = $known !== [] ? $known[min($i, count($known) - 1)] : self::propFallback($primitive, (string) $prop, $label);
                         }
                     }
                 }
@@ -244,6 +252,47 @@ final class LayoutFromDesign
         $collect((array) ($known['skeleton'] ?? []));
 
         return $out !== [] ? $out : ['[The '.mb_strtolower($label).' goes here]'];
+    }
+
+    /**
+     * The guidance in a part's skeleton's prose props (a heading's words), by "element.prop", in order.
+     *
+     * @param  array<string, mixed>|null  $known
+     * @return array<string, list<string>>
+     */
+    private static function propGuidanceOf(?array $known): array
+    {
+        $out = [];
+        $collect = function (array $nodes) use (&$collect, &$out): void {
+            foreach ($nodes as $node) {
+                if (! is_array($node) || PmlParser::isCommentNode($node)) {
+                    continue;
+                }
+                $primitive = (string) ($node['primitive'] ?? '');
+                foreach ((array) ($node['props'] ?? []) as $prop => $value) {
+                    if ($primitive !== '' && $prop !== 'value' && is_string($value) && trim($value) !== '' && (ElementCatalog::prop($primitive, (string) $prop)['type'] ?? null) === 'prose') {
+                        $out[$primitive.'.'.$prop][] = $value;
+                    }
+                }
+                if (is_array($node['children'] ?? null)) {
+                    $collect($node['children']);
+                }
+            }
+        };
+        $collect((array) ($known['skeleton'] ?? []));
+
+        return $out;
+    }
+
+    /** A prose prop's guidance when the part's template had none: it names the part ("[The question section heading]"). */
+    private static function propFallback(string $primitive, string $prop, string $label): string
+    {
+        $part = trim(mb_strtolower($label));
+        if ($part === '') {
+            return '['.ucfirst(str_replace('_', ' ', $prop)).']';
+        }
+
+        return $primitive === 'heading' ? "[The {$part} heading]" : '['.ucfirst(str_replace('_', ' ', $prop))." of the {$part}]";
     }
 
     /**
