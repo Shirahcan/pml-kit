@@ -31,6 +31,14 @@ class PmlTreeTest extends TestCase
         $this->assertNull(PmlTree::nodeAt($this->design(), []));
     }
 
+    public function test_path_of_finds_an_element_by_uid_at_any_depth(): void
+    {
+        $this->assertSame([1], PmlTree::pathOf($this->design(), 'sone01abc'));
+        $this->assertSame([1, 1], PmlTree::pathOf($this->design(), 'aone01abc'));
+        $this->assertNull(PmlTree::pathOf($this->design(), 'missing0'));
+        $this->assertSame('aone01abc', PmlTree::nodeAt($this->design(), PmlTree::pathOf($this->design(), 'aone01abc'))['uid']);
+    }
+
     public function test_replace_at_changes_only_the_aimed_element(): void
     {
         $next = PmlTree::replaceAt($this->design(), [1, 1], ['uid' => 'aone01abc', 'primitive' => 'p', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Better.']]]]);

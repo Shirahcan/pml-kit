@@ -39,6 +39,30 @@ final class PmlTree
     }
 
     /**
+     * The path of the element with this uid, or null when no element has it (0.33.1, Porter T3: a Build that rewrites the
+     * parts an ask names finds each part by the uid the post's map gives, then replaces it in place).
+     *
+     * @param  list<array<string, mixed>>  $nodes
+     * @return list<int>|null
+     */
+    public static function pathOf(array $nodes, string $uid): ?array
+    {
+        foreach (array_values($nodes) as $i => $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+            if (($node['uid'] ?? null) === $uid) {
+                return [$i];
+            }
+            if (is_array($node['children'] ?? null) && ($below = self::pathOf($node['children'], $uid)) !== null) {
+                return [$i, ...$below];
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * The same tree with the element at `$path` replaced; everything else is exactly as it was.
      *
      * @param  list<array<string, mixed>>  $nodes
