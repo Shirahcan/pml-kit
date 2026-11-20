@@ -386,6 +386,151 @@ final class LayoutChecks
         return $out;
     }
 
+    /**
+     * The document's MAP (0.33.0; owner 2026-11-20: "Porter should be taught to fully understand the templates (content,
+     * structure, config, etc); and should be able to see the current state (content designed)"): one entry per part
+     * instance, in the layout's order, saying what a writer needs to act on it without reading the PML: what it is for,
+     * its kind and bounds, where it is (its `uid`), and its state NOW: `written`, `example words` (still the template's
+     * examples), `partly written`, `empty`, `drawn` (bound, call-to-action and record parts draw their words from the
+     * document's details, the CTA library or a record, never typed) or `missing`. With the examples still in it, its word
+     * count, and the VERIFY checks pinned to it. Built from the SAME part collection and example detection as check(), so
+     * the map and Publish never disagree. A part's purpose rides on its first instance only (it is the same for all).
+     *
+     * @param  list<array<string, mixed>>  $nodes  the document's PML, its parts marked with `part`
+     * @return list<array<string, mixed>>
+     */
+    public static function map(LayoutDefinition $layout, array $nodes): array
+    {
+        $found = [];
+        self::collect($nodes, [], $found);
+        $checks = self::pinnedChecks($nodes, $found);
+
+        $out = [];
+        foreach ($layout->parts as $part) {
+            $at = $found[$part['key']] ?? [];
+            $examples = self::examples($part);
+            $base = array_filter([
+                'part' => $part['key'],
+                'label' => $part['label'],
+                'kind' => $part['kind'],
+                'inside' => $part['inside'] ?? null,
+                'bounds' => $part['kind'] === 'repeat' ? ['min' => $part['min'], 'max' => $part['max']] : null,
+                'rules' => ($part['rules'] ?? []) !== [] ? $part['rules'] : null,
+                'stage' => $part['stage'] ?? null,
+            ], static fn ($v) => $v !== null);
+            $purpose = self::purposeOf($part);
+
+            if ($at === []) {
+                $out[] = $base + ['purpose' => $purpose, 'instance' => 0, 'of' => 0, 'uid' => null, 'state' => 'missing', 'words' => 0, 'examples_left' => [], 'checks' => $checks[$part['key']][0] ?? []];
+
+                continue;
+            }
+
+            foreach ($at as $i => $instance) {
+                $text = trim(implode(' ', self::words(['children' => self::withoutNotes([$instance['node']])])));
+                $count = $text === '' ? 0 : count(preg_split('/\s+/u', $text));
+                $left = self::leftExamples($examples, $instance['node']);
+                $state = match (true) {
+                    in_array($part['kind'], ['bound', 'cta', 'record'], true) => 'drawn',
+                    $left !== [] && count($left) === count($examples) => 'example words',
+                    $left !== [] => 'partly written',
+                    $count === 0 => 'empty',
+                    default => 'written',
+                };
+
+                $out[] = $base + ($i === 0 ? ['purpose' => $purpose] : []) + [
+                    'instance' => $i + 1,
+                    'of' => count($at),
+                    'uid' => is_string($instance['node']['uid'] ?? null) ? $instance['node']['uid'] : null,
+                    'state' => $state,
+                    'words' => $count,
+                    'examples_left' => $left,
+                    'checks' => $checks[$part['key']][$i] ?? [],
+                ];
+            }
+        }
+
+        return $out;
+    }
+
+    /** The part's purpose, as the template's own note in its skeleton says it. */
+    private static function purposeOf(array $part): string
+    {
+        foreach ((array) ($part['skeleton'] ?? []) as $node) {
+            if (is_array($node) && PmlParser::isCommentNode($node)) {
+                return mb_substr(trim((string) $node['comment']), 0, 400);
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * The open VERIFY checks per part instance (`[part][instance index] => list<string>`): a check pinned to an element
+     * (`note.for`, PinnedNotes) belongs to the instance holding that element; an unpinned one to the part verifyNotes()
+     * finds for it, on its first instance.
+     *
+     * @param  array<string, list<array<string, mixed>>>  $found
+     * @return array<string, array<int, list<string>>>
+     */
+    private static function pinnedChecks(array $nodes, array $found): array
+    {
+        $owner = [];
+        foreach ($found as $key => $instances) {
+            foreach ($instances as $i => $instance) {
+                foreach (self::uids($instance['node']) as $uid) {
+                    $owner[$uid] ??= [$key, $i];
+                }
+            }
+        }
+
+        $out = [];
+        $pinned = [];
+        $walk = static function (array $list) use (&$walk, &$out, &$pinned, $owner): void {
+            foreach ($list as $node) {
+                if (! is_array($node)) {
+                    continue;
+                }
+                if (PmlParser::isCommentNode($node)) {
+                    $text = trim((string) $node['comment']);
+                    $for = $node['note']['for'] ?? null;
+                    if (stripos($text, 'VERIFY') === 0 && ! PinnedNotes::isResolved($node) && is_string($for) && isset($owner[$for])) {
+                        [$key, $i] = $owner[$for];
+                        $out[$key][$i][] = mb_substr($text, 0, 300);
+                        $pinned[$text] = true;
+                    }
+
+                    continue;
+                }
+                if (is_array($node['children'] ?? null)) {
+                    $walk($node['children']);
+                }
+            }
+        };
+        $walk($nodes);
+
+        foreach (self::verifyNotes($nodes) as [$text, $part]) {
+            if ($part !== null && ! isset($pinned[$text])) {
+                $out[$part][0][] = mb_substr($text, 0, 300);
+            }
+        }
+
+        return $out;
+    }
+
+    /** @return list<string> every uid in a node and below it */
+    private static function uids(array $node): array
+    {
+        $out = is_string($node['uid'] ?? null) ? [$node['uid']] : [];
+        foreach ((array) ($node['children'] ?? []) as $child) {
+            if (is_array($child)) {
+                array_push($out, ...self::uids($child));
+            }
+        }
+
+        return $out;
+    }
+
     private static function finding(string $severity, string $rule, array $part, string $message, ?string $suggestion): array
     {
         return ['source' => 'layout', 'severity' => $severity, 'rule' => $rule, 'message' => $message, 'excerpt' => $part['label'], 'suggestion' => $suggestion, 'part' => $part['key']];
