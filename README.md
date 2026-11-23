@@ -17,6 +17,17 @@ The server side of PML and PSL, the page language every Shirahcan product shares
 
 The browser side is `@shirahcan/pml` (repo `pml-ui`). A change to `elements.json` is exported to it with Portify's `php artisan pml:export-elements`, then both are tagged.
 
+## Page Builds (`Shirahcan\Pml\Build\*`, 0.36.0)
+
+One console Build on a PAGE, the same for every product (moved from Portify's site composer, where it was tuned on real asks). The product implements `PageBuildHost` and calls ai-service's `shared.pml.edit` / `shared.pml.edit_repair` with its own `owner`, `spec` and `house_rules`. Nothing is stored by the kit.
+
+| Class | What it does |
+|---|---|
+| `PageBuildHost` | The product's port: `ask` (the model call, `strong` = the stronger route), `place` (pictures become stored addresses, once each), `check` (the product's save check), `theme`, `said` (progress the person watches). |
+| `PageBuild` | `edit()` asks once then `finish()`; `finish()` places, mends markup with no model, runs the check, fixes faint text in place, then ONE repair, the strong rung, ONE rewrite (never a mirror). Every fix failing changes nothing and says why (`reason`, `fault_line`). Canonical source with permanent ids; ids are not a change; a reply is written from the page when the model wrote none. |
+| `PageReply` | Splits an answer into the page and the words to the person (`=== PORTER REPLY ===`), wherever the model put them; `pageSoFar()` for a streaming preview. |
+| `DesignChanges` | What an ask changed, element by element, by permanent id, in the person's words; one count for the console and the reply. |
+
 ## Social cards (`Shirahcan\Pml\Card\*`)
 
 A social card is an ordinary PML node list limited to the card subset (`CardFrame::ELEMENTS`), drawn by `PmlCard` from `@shirahcan/pml` in a fixed 1200x630 frame. There is no card element in the grammar. No AI runs in any of these classes.
