@@ -62,10 +62,10 @@ final class PageReply
         if (! self::hasMarkup($before) && self::hasMarkup($after)) {
             [$lead, $page] = self::atFirst($after, $sourceStart);
 
-            return ['pml' => rtrim($page), 'reply' => self::plainReply(trim($before) !== '' ? $before : $lead)];
+            return ['pml' => rtrim($page), 'reply' => self::plain(trim($before) !== '' ? $before : $lead)];
         }
 
-        return ['pml' => rtrim($before), 'reply' => self::plainReply($after)];
+        return ['pml' => rtrim($before), 'reply' => self::plain($after)];
     }
 
     /**
@@ -102,8 +102,8 @@ final class PageReply
         return [substr($text, 0, $at), substr($text, $at)];
     }
 
-    /** The assistant's words as a box shows them: plain text (Markdown would show as raw asterisks), capped. */
-    private static function plainReply(string $words): ?string
+    /** The assistant's words as a box shows them: plain text (Markdown would show as raw asterisks), capped at 4,000 characters. */
+    public static function plain(string $words): ?string
     {
         $reply = trim((string) preg_replace(['/\*\*(.+?)\*\*/s', '/(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])/s', '/`([^`]+)`/'], '$1', $words));
 

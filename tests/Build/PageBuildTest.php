@@ -207,4 +207,14 @@ final class PageBuildTest extends TestCase
     {
         $this->assertSame(['pml' => self::NEW, 'reply' => 'I renamed it.'], PageReply::split("I renamed it.\n".PageReply::REPLY_MARKER."\n".self::NEW));
     }
+
+    public function test_a_reply_is_plain_words_and_a_long_one_is_folded_at_a_word(): void
+    {
+        $this->assertSame('I made the title bold and kept setup.', PageReply::plain('I made the **title** *bold* and kept `setup`.'));
+        $this->assertNull(PageReply::plain("  \n "));
+
+        $long = PageReply::plain(str_repeat('word ', 1000));
+        $this->assertLessThanOrEqual(4000, mb_strlen((string) $long));
+        $this->assertStringEndsWith('word…', (string) $long);
+    }
 }
