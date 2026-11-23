@@ -56,6 +56,21 @@ final class DesignChangesTest extends TestCase
         $this->assertSame([], DesignChanges::between(self::PAGE, $after)['changes']);
     }
 
+    public function test_empty_settings_written_or_left_out_are_the_same_element(): void
+    {
+        // A stored post writes `props: []`; the same design parsed back leaves `props` out. Neither is a change.
+        $stored = [['primitive' => 'box', 'part' => 'header', 'props' => [], 'uid' => 'box001ab', 'children' => [
+            ['primitive' => 'post_breadcrumbs', 'props' => [], 'uid' => 'crumb01a'],
+        ]]];
+        $parsed = [['primitive' => 'box', 'uid' => 'box001ab', 'part' => 'header', 'children' => [
+            ['primitive' => 'post_breadcrumbs', 'uid' => 'crumb01a'],
+        ]]];
+
+        $this->assertSame([], DesignChanges::between($stored, $parsed)['changes']);
+        $parsed[0]['children'][0]['props'] = ['separator' => '/'];
+        $this->assertSame([['uid' => 'crumb01a', 'label' => 'post breadcrumbs', 'how' => 'changed']], DesignChanges::between($stored, $parsed)['changes'], 'a real setting is still a change');
+    }
+
     public function test_a_binding_is_not_used_as_a_name_and_long_words_are_cut(): void
     {
         $this->assertSame('cta banner', DesignChanges::label(self::PAGE[1]));

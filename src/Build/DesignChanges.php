@@ -127,6 +127,11 @@ final class DesignChanges
             if ($uid !== null) {
                 $own = $node;
                 unset($own['uid'], $own['children']);
+                // No settings is no settings: a stored design writes `props: []` where a parsed one leaves `props` out
+                // (Portify TEST 2026-11-23: a post's Build that added one line read "Changed 47 elements").
+                if (($own['props'] ?? null) === []) {
+                    unset($own['props']);
+                }
                 // Children without an id (prose, a list's plain items) are part of this element's own content.
                 $own['children'] = array_values(array_filter($children, static fn (array $c) => ! is_string($c['uid'] ?? null) && ! PmlParser::isCommentNode($c)));
                 $out[$uid] = ['own' => (string) json_encode(self::sorted($own)), 'parent' => $parent, 'label' => self::label($node, $settings)];
