@@ -126,15 +126,10 @@ final class DesignChanges
 
             if ($uid !== null) {
                 $own = $node;
-                unset($own['uid'], $own['children']);
-                // No settings is no settings: a stored design writes `props: []` where a parsed one leaves `props` out
-                // (Portify TEST 2026-11-23: a post's Build that added one line read "Changed 47 elements").
-                if (($own['props'] ?? null) === []) {
-                    unset($own['props']);
-                }
                 // Children without an id (prose, a list's plain items) are part of this element's own content.
                 $own['children'] = array_values(array_filter($children, static fn (array $c) => ! is_string($c['uid'] ?? null) && ! PmlParser::isCommentNode($c)));
-                $out[$uid] = ['own' => (string) json_encode(self::sorted($own)), 'parent' => $parent, 'label' => self::label($node, $settings)];
+                unset($own['uid']);
+                $out[$uid] = ['own' => (string) json_encode(self::sorted(self::canonical($own))), 'parent' => $parent, 'label' => self::label($node, $settings)];
             }
 
             self::index($children, $settings, $uid ?? $parent, $out);
@@ -143,9 +138,60 @@ final class DesignChanges
         return $out;
     }
 
-    /** The same content in any key order is the same content. */
+    /**
+     * One element's content as a person sees it, whichever way it was stored. A design read back from storage and the
+     * same design parsed from PML differ in form only (Portify TEST 2026-11-23: a post's Build that added one line read
+     * "Changed 47 elements", then 19): no settings written as `props: []` or left out, an empty text run kept or
+     * dropped, no children written as `[]` or left out. None of those is a change.
+     *
+     * @param  array<string, mixed>  $node
+     * @return array<string, mixed>
+     */
+    private static function canonical(array $node): array
+    {
+        if (($node['props'] ?? null) === []) {
+            unset($node['props']);
+        }
+
+        if (array_key_exists('children', $node)) {
+            $kids = [];
+            foreach ((array) $node['children'] as $child) {
+                if (is_array($child) && self::isEmptyText($child)) {
+                    continue;
+                }
+                $kids[] = is_array($child) ? self::canonical($child) : $child;
+            }
+            if ($kids === []) {
+                unset($node['children']);
+            } else {
+                $node['children'] = $kids;
+            }
+        }
+
+        return $node;
+    }
+
+    /** A text run with no words shows nothing. */
+    private static function isEmptyText(array $node): bool
+    {
+        return ($node['primitive'] ?? null) === 'text' && ! isset($node['uid']) && ($node['children'] ?? []) === []
+            && (string) ($node['props']['value'] ?? '') === '';
+    }
+
+    /**
+     * The same content in any key order is the same content, and a setting reads the same written as a number or as
+     * its words (PML writes every setting as words: `level="2"` is stored as "2" by one editor and parsed as 2).
+     */
     private static function sorted(mixed $value): mixed
     {
+        if (is_int($value) || is_float($value)) {
+            return (string) $value;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
         if (! is_array($value)) {
             return $value;
         }

@@ -71,6 +71,29 @@ final class DesignChangesTest extends TestCase
         $this->assertSame([['uid' => 'crumb01a', 'label' => 'post breadcrumbs', 'how' => 'changed']], DesignChanges::between($stored, $parsed)['changes'], 'a real setting is still a change');
     }
 
+    public function test_a_setting_stored_as_words_or_a_number_and_an_empty_text_run_are_not_changes(): void
+    {
+        // Portify TEST 2026-11-23: the stored post had level "2" and an empty paragraph holding an empty text run; the
+        // same design parsed back has level 2 and a paragraph with no runs. "Changed 19 elements" for one added line.
+        $stored = [
+            ['primitive' => 'heading', 'props' => ['text' => 'Fees', 'level' => '2'], 'uid' => 'head01ab'],
+            ['primitive' => 'p', 'props' => [], 'uid' => 'para01ab', 'children' => [['primitive' => 'text', 'props' => ['value' => '']]]],
+            ['primitive' => 'p', 'uid' => 'para02ab', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Hi', 'bold' => 'true'], 'children' => []]]],
+        ];
+        $parsed = [
+            ['primitive' => 'heading', 'uid' => 'head01ab', 'props' => ['level' => 2, 'text' => 'Fees']],
+            ['primitive' => 'p', 'uid' => 'para01ab'],
+            ['primitive' => 'p', 'uid' => 'para02ab', 'children' => [['primitive' => 'text', 'props' => ['value' => 'Hi', 'bold' => true]]]],
+        ];
+
+        $this->assertSame([], DesignChanges::between($stored, $parsed)['changes']);
+
+        $changed = $parsed;
+        $changed[0]['props']['level'] = 3;
+        $changed[1]['children'] = [['primitive' => 'text', 'props' => ['value' => 'Now it says something']]];
+        $this->assertSame(['head01ab', 'para01ab'], array_column(DesignChanges::between($stored, $changed)['changes'], 'uid'), 'a real change of level or words is still a change');
+    }
+
     public function test_a_binding_is_not_used_as_a_name_and_long_words_are_cut(): void
     {
         $this->assertSame('cta banner', DesignChanges::label(self::PAGE[1]));
