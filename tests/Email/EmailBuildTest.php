@@ -152,6 +152,35 @@ I made it clearer.");
         $this->assertSame('Draw 330: 2,500 invitations', $result['nodes'][0]['children'][0]['props']['text']);
     }
 
+    /**
+     * Portify 2026-11-23 (a newsletter template's console, Loop 1): a paragraph the Build ADDED came back with no id, so
+     * the console's "What changed" could not name it ("Changed the design"), and it could not be aimed at or pinned.
+     * Every element keeps its id or gets one, as the page Build does; an id alone is never a change.
+     */
+    public function test_an_added_element_gets_its_permanent_id_and_an_id_alone_is_no_change(): void
+    {
+        $result = (new EmailBuild)->run($this->design(), null, fn () => '<heading uid="hone01abc" part="lead" text="[One headline]" level="2"/>'."\n"
+            .'<callout uid="cone01abc"><button uid="bone01abc" label="Read the guide" href="https://example.org/guide"/></callout>'."\n"
+            ."<p>Thanks for reading this week.</p>\n".EmailBuild::REPLY_MARK."\nI added a closing line.");
+
+        $this->assertTrue($result['changed']);
+        $added = end($result['nodes']);
+        $this->assertSame('p', $added['primitive']);
+        $this->assertMatchesRegularExpression('/^[a-z0-9]{6,16}$/', (string) ($added['uid'] ?? ''), 'the added paragraph has its permanent id');
+        $this->assertSame(['hone01abc', 'cone01abc'], [$result['nodes'][1]['uid'], $result['nodes'][2]['uid']], 'every other element keeps its own');
+        $this->assertArrayNotHasKey('uid', $added['children'][0] ?? [], 'a word run carries no id');
+
+        // An email stored before ids existed, answered unchanged: it gets its ids, and that alone is not a change.
+        $bare = [['primitive' => 'heading', 'props' => ['text' => 'This week at a glance', 'level' => 2]]];
+        $same = (new EmailBuild)->run($bare, null, fn () => '<heading text="This week at a glance" level="2"/>'."\n".EmailBuild::REPLY_MARK."\nNothing to change.");
+        $this->assertFalse($same['changed']);
+        $this->assertMatchesRegularExpression('/^[a-z0-9]{6,16}$/', (string) ($same['nodes'][0]['uid'] ?? ''));
+
+        // An aimed ask hands back its block WITH the id it has in the email.
+        $aimed = (new EmailBuild)->run($bare, [0], fn () => '<heading text="This week, at a glance" level="2"/>'."\n".EmailBuild::REPLY_MARK."\nA comma.");
+        $this->assertSame($aimed['nodes'][0]['uid'], $aimed['node']['uid']);
+    }
+
     public function test_the_spec_is_the_email_profile_never_restated(): void
     {
         $spec = EmailSpec::describe();

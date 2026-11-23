@@ -6,6 +6,7 @@ use Shirahcan\Pml\DocToMarkdown;
 use Shirahcan\Pml\MarkdownToDoc;
 use Shirahcan\Pml\PmlParser;
 use Shirahcan\Pml\PmlTree;
+use Shirahcan\Pml\PmlUids;
 use Shirahcan\Pml\PmlScanner;
 use Shirahcan\Pml\PmlSerializer;
 use Throwable;
@@ -86,11 +87,15 @@ final class EmailBuild
                 'node' => $aimed, 'reply' => $attempt['reply'], 'notes' => $attempt['notes'], 'repaired' => $repaired];
         }
 
-        $nodes = (array) $attempt['nodes'];
-        $changed = self::canonical($nodes) !== self::canonical($current);
+        // Every element keeps its permanent id or gets one, as the page Build does: an element the answer ADDED came back
+        // with none, so the console's "What changed" could not name it ("Changed the design"), and it could not be aimed
+        // at or pinned (Portify 2026-11-23). An id alone is never a change.
+        $nodes = PmlUids::ensure((array) $attempt['nodes']);
+        $node = $path !== null && $attempt['node'] !== null ? (self::nodeAt($nodes, $path) ?? $attempt['node']) : $attempt['node'];
+        $changed = self::canonical(PmlUids::strip($nodes)) !== self::canonical(PmlUids::strip($current));
 
         return ['changed' => $changed, 'refused' => false, 'reason' => null, 'mode' => $mode, 'nodes' => $nodes,
-            'node' => $attempt['node'], 'reply' => $attempt['reply'], 'notes' => $attempt['notes'], 'repaired' => $repaired];
+            'node' => $node, 'reply' => $attempt['reply'], 'notes' => $attempt['notes'], 'repaired' => $repaired];
     }
 
     /**
