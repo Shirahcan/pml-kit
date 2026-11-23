@@ -5,6 +5,7 @@
         "level": ["1", "2", "3", "4"],
         "cta_stage": ["awareness", "consideration", "decision"],
         "cta_variant": ["inline", "rail", "ask", "banner"],
+        "cta_button_corners": ["theme", "pill", "rounded", "square"],
         "variant": ["primary", "outline", "link", "soft", "ghost"],
         "columns": ["1", "2", "3", "4", "6", "12"],
         "gap": ["none", "xs", "sm", "md", "lg", "xl"],
@@ -347,7 +348,8 @@
             "container": false,
             "props": {
                 "stage": { "type": "enum", "values": "@cta_stage" },
-                "variant": { "type": "enum", "values": "@cta_variant" }
+                "variant": { "type": "enum", "values": "@cta_variant" },
+                "button_corners": { "type": "enum", "values": "@cta_button_corners" }
             }
         },
         "post_story": {
