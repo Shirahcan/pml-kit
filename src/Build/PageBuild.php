@@ -210,24 +210,10 @@ final class PageBuild
      */
     public function summarise(array $before, array $after): string
     {
-        $result = DesignChanges::between($before, $after);
-        $count = static fn (int $n): string => $n.' '.($n === 1 ? 'element' : 'elements');
-        $added = array_values(array_filter($result['changes'], static fn (array $c): bool => $c['how'] === 'added'));
-        $parts = [];
-
-        if ($result['counts']['added'] > 0) {
-            $names = array_map(static fn (array $c): string => 'the '.$c['label'], array_slice($added, 0, 6));
-            $parts[] = 'added '.$count($result['counts']['added']).($names !== [] ? ' ('.implode(', ', $names).($result['counts']['added'] > count($names) ? ', ...' : '').')' : '');
-        }
-        if ($result['counts']['changed'] > 0) {
-            $parts[] = 'changed '.$count($result['counts']['changed']);
-        }
-        if ($result['counts']['removed'] > 0) {
-            $parts[] = 'removed '.$count($result['counts']['removed']);
-        }
+        $words = DesignChanges::sentence(DesignChanges::between($before, $after));
 
         // The assistant's own reply when it wrote none, so it says "I".
-        return $parts === [] ? 'I changed the page.' : 'I '.implode(', ', $parts).'.';
+        return $words === '' ? 'I changed the page.' : 'I '.$words.'.';
     }
 
     /**

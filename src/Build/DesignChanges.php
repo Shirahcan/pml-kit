@@ -38,12 +38,14 @@ final class DesignChanges
      * @param  list<mixed>  $before
      * @param  list<mixed>  $after
      * @param  array<string, string>  $settings  a component's settings by name, in words (see {@see settingsOf()})
+     * @param  int|null  $max  how many changes to list; null lists every one (a side-by-side compare marks them all,
+     *                         versions-compare 2026-11-24), the console keeps its 12
      * `counts` are over every change, not only the listed ones: the ONE count (2026-11-10), read by the
      * console's "Changed N elements" and by the reply a page Build writes when the model wrote none.
      *
      * @return array{changes: list<array{uid: string, label: string, how: string}>, total: int, counts: array{added: int, changed: int, removed: int}}
      */
-    public static function between(array $before, array $after, array $settings = []): array
+    public static function between(array $before, array $after, array $settings = [], ?int $max = self::MAX): array
     {
         $was = self::index($before, $settings);
         $now = self::index($after, $settings);
@@ -72,7 +74,35 @@ final class DesignChanges
             $counts[$change['how']]++;
         }
 
-        return ['changes' => array_slice($changes, 0, self::MAX), 'total' => count($changes), 'counts' => $counts];
+        return ['changes' => $max === null ? $changes : array_slice($changes, 0, $max), 'total' => count($changes), 'counts' => $counts];
+    }
+
+    /**
+     * What changed, as one plain clause with no speaker (versions-compare 2026-11-24): "added 2 elements (the heading
+     * “Pricing”), changed 1 element, removed 3 elements (the section “FAQ”, ...)". The ONE wording: a page Build's
+     * reply puts "I" in front of it, a version's row and Porter's answers read it as it is. Names come from the listed
+     * changes, at most six per kind; '' when nothing changed.
+     *
+     * @param  array{changes: list<array{uid: string, label: string, how: string}>, total: int, counts: array{added: int, changed: int, removed: int}}  $result  from {@see between()}
+     */
+    public static function sentence(array $result): string
+    {
+        $count = static fn (int $n): string => $n.' '.($n === 1 ? 'element' : 'elements');
+        $parts = [];
+
+        foreach (['added', 'changed', 'removed'] as $how) {
+            $n = (int) ($result['counts'][$how] ?? 0);
+            if ($n === 0) {
+                continue;
+            }
+            // A changed element is named on the canvas; what was added or removed is named here, because it is
+            // the part a person cannot see on the side it is missing from.
+            $named = $how === 'changed' ? [] : array_values(array_filter($result['changes'] ?? [], static fn (array $c): bool => $c['how'] === $how));
+            $names = array_map(static fn (array $c): string => 'the '.$c['label'], array_slice($named, 0, 6));
+            $parts[] = $how.' '.$count($n).($names !== [] ? ' ('.implode(', ', $names).($n > count($names) ? ', ...' : '').')' : '');
+        }
+
+        return implode(', ', $parts);
     }
 
     /**

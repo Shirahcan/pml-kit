@@ -48,6 +48,47 @@ final class DesignChangesTest extends TestCase
         $this->assertSame(['added' => 1, 'changed' => 0, 'removed' => 1], $result['counts']);
     }
 
+    public function test_a_compare_lists_every_change_and_the_console_keeps_twelve(): void
+    {
+        $before = [];
+        for ($i = 0; $i < 15; $i++) {
+            $before[] = ['primitive' => 'heading', 'uid' => 'h'.$i, 'props' => ['text' => 'Question '.$i]];
+        }
+
+        $this->assertCount(12, DesignChanges::between($before, [])['changes']);
+        $all = DesignChanges::between($before, [], [], null);
+        $this->assertCount(15, $all['changes']);
+        $this->assertSame(15, $all['counts']['removed']);
+    }
+
+    public function test_the_sentence_names_what_was_added_and_removed_and_counts_what_changed(): void
+    {
+        $after = self::PAGE;
+        $after[0]['children'][0]['props']['text'] = 'Simple pricing';
+        $after[] = ['primitive' => 'button', 'uid' => 'b9', 'props' => ['label' => 'Book a call']];
+        unset($after[1]);
+        $after = array_values($after);
+
+        $this->assertSame(
+            'added 1 element (the button “Book a call”), changed 1 element, removed 1 element (the cta banner)',
+            DesignChanges::sentence(DesignChanges::between(self::PAGE, $after)),
+        );
+        $this->assertSame('', DesignChanges::sentence(DesignChanges::between(self::PAGE, self::PAGE)));
+    }
+
+    public function test_the_sentence_says_there_are_more_than_it_names(): void
+    {
+        $before = [];
+        for ($i = 0; $i < 8; $i++) {
+            $before[] = ['primitive' => 'heading', 'uid' => 'h'.$i, 'props' => ['text' => 'Q'.$i]];
+        }
+
+        $words = DesignChanges::sentence(DesignChanges::between($before, [], [], null));
+
+        $this->assertStringStartsWith('removed 8 elements (the heading “Q0”', $words);
+        $this->assertStringEndsWith('the heading “Q5”, ...)', $words);
+    }
+
     public function test_a_moved_element_or_reordered_keys_are_not_a_change(): void
     {
         $after = [self::PAGE[1], ['primitive' => 'section', 'uid' => 'sec1', 'children' => array_reverse(self::PAGE[0]['children']), 'props' => []]];
