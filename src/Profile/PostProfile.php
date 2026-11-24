@@ -12,9 +12,9 @@ use Shirahcan\Pml\PrimitiveSchema;
  * post's pieces, the `post_*` elements whose words are the POST's own details (its title, the line under it, its
  * cover), never text in the design.
  *
- * The gate, verbatim: each TOP-LEVEL block is a PML element, is not a component (saved sections are not available in
- * posts yet), and passes PrimitiveSchema::validateNode. That check does not look inside a block's children, so this
- * profile does not either (parity first; checking every depth is its own change, P1a-3).
+ * The gate: every block, at EVERY depth, is a PML element or a note, never a component (saved sections are not
+ * available in posts yet), and passes PrimitiveSchema::validateNode; then the whole design compiles as its bake will
+ * (P1a-3a, 0.37.0). Until 0.37.0 only the top-level blocks were checked, so a nested problem saved and failed later.
  *
  * The pieces are ONE authority for what the Studio, the console and Porter used to keep three copies of (pml-ui's
  * PIECE_FIELDS and PIECE_TEXT_FIELD, GrowthPostConsoleController's DRAFTS and onlyPostPieces, PostConsole's DRAFTABLE).
@@ -70,30 +70,61 @@ final class PostProfile implements Profile
     public function violations(array $nodes): array
     {
         $schema = new PrimitiveSchema(new BlockSchema());
+        $nodes = array_values($nodes);
         $found = [];
 
-        foreach (array_values($nodes) as $i => $node) {
-            $at = (string) ($i + 1);
+        foreach ($nodes as $i => $node) {
+            $this->check($schema, $node, (string) ($i + 1), "nodes.{$i}", $found);
+        }
 
-            if (! is_array($node)) {
-                $found[] = self::finding('invalid', $at, 'Each block of a post is a PML element.');
-
-                continue;
-            }
-            if (isset($node['component'])) {
-                $found[] = self::finding('component', $at, 'Saved sections (components) are not available in posts yet. Use the elements and the layout\'s own parts.');
-
-                continue;
-            }
-
+        /*
+         * ⚠ EVERY DEPTH, THEN THE WHOLE DESIGN (P1a-3a, 2026-11-24). The gate this profile copied checked each TOP-LEVEL
+         * block alone, so a nested unknown element, a nested smuggled attribute or a nested component was SAVED, and the
+         * post failed later at its preview or publish bake (a standard-library component even expanded silently in a
+         * post that says components are not available). The walk above finds each of those where it is; once every
+         * element is sound, the design is compiled as a whole, exactly as the bake compiles it, so what only the whole
+         * tree can show (an element inside a parent it cannot sit in, an `else` with no `if`) is refused at save too.
+         */
+        if ($found === []) {
             try {
-                $schema->validateNode($node, "nodes.{$i}");
+                (PageProfile::standardBuilder())->validate($nodes);
             } catch (InvalidPmlException $e) {
-                $found[] = self::finding('invalid', $at, $e->getMessage());
+                $found[] = self::finding('invalid', '', $e->getMessage());
             }
         }
 
         return $found;
+    }
+
+    /**
+     * One block and everything inside it. A finding stops the walk into that block (its children are not trusted).
+     *
+     * @param  list<array{code: string, at: string, text: string}>  $found
+     */
+    private function check(PrimitiveSchema $schema, mixed $node, string $at, string $path, array &$found): void
+    {
+        if (! is_array($node)) {
+            $found[] = self::finding('invalid', $at, 'Each block of a post is a PML element.');
+
+            return;
+        }
+        if (isset($node['component'])) {
+            $found[] = self::finding('component', $at, 'Saved sections (components) are not available in posts yet. Use the elements and the layout\'s own parts.');
+
+            return;
+        }
+
+        try {
+            $schema->validateNode($node, $path);
+        } catch (InvalidPmlException $e) {
+            $found[] = self::finding('invalid', $at, $e->getMessage());
+
+            return;
+        }
+
+        foreach (array_values((array) ($node['children'] ?? [])) as $j => $child) {
+            $this->check($schema, $child, "{$at}.".($j + 1), "{$path}.children.{$j}", $found);
+        }
     }
 
     public function pieces(): array

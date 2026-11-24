@@ -37,7 +37,6 @@ final class PageProfileTest extends TestCase
             'a section the site does not have' => [[$title, ['component' => 'no_such_section']]],
             'an unknown element, nested' => [[$title, ['primitive' => 'box', 'children' => [['primitive' => 'zzz']]]]],
             'a smuggled attribute, nested' => [[['primitive' => 'box', 'children' => [['primitive' => 'button', 'props' => ['label' => 'Go', 'onclick' => 'x']]]]]],
-            'a post piece (today: allowed on a page)' => [[['primitive' => 'post_title']]],
         ];
     }
 
@@ -53,6 +52,19 @@ final class PageProfileTest extends TestCase
             $this->assertCount(1, $found, 'the gate stops at its first problem');
             $this->assertSame(['invalid', $e->getMessage()], [$found[0]['code'], $found[0]['text']]);
         }
+    }
+
+    /** P1a-3a (0.37.0): a post's piece reads a post's own record, which a page does not have. It compiled before. */
+    public function test_a_post_piece_is_refused_on_a_page_at_any_depth(): void
+    {
+        $title = ['primitive' => 'heading', 'props' => ['text' => 'Hello', 'level' => 2]];
+        $page = [$title, ['primitive' => 'box', 'children' => [$title, ['primitive' => 'post_read_time']]]];
+
+        self::builder()->validate($page, self::partials());
+        $found = (new PageProfile(self::partials()))->violations($page);
+
+        $this->assertSame(['post_piece', '2.2'], [$found[0]['code'], $found[0]['at']]);
+        $this->assertSame("A website page cannot hold a post's read time (post_read_time): it shows a post's own details, and a page has none.", $found[0]['text']);
     }
 
     public function test_it_says_which_top_level_element_holds_the_problem(): void

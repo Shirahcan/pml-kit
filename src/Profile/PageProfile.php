@@ -37,7 +37,7 @@ final class PageProfile implements Profile
      */
     public function __construct(private readonly array $partials = [], ?PmlSnapshotBuilder $builder = null)
     {
-        $this->builder = $builder ?? self::builder();
+        $this->builder = $builder ?? self::standardBuilder();
     }
 
     public function key(): string
@@ -54,6 +54,16 @@ final class PageProfile implements Profile
     {
         $nodes = array_values($nodes);
 
+        // ⚠ A post's pieces show a POST's own details (its title, its cover, its author), and a page has none, so a
+        // page holding one compiled and then showed nothing, or another record's words (P1a-3a, 0.37.0).
+        $piece = self::postPiece($nodes, '');
+        if ($piece !== null) {
+            [$at, $element] = $piece;
+            $what = str_replace('_', ' ', substr($element, strlen('post_')));
+
+            return [['code' => 'post_piece', 'at' => $at, 'text' => "A website page cannot hold a post's {$what} ({$element}): it shows a post's own details, and a page has none."]];
+        }
+
         try {
             $this->builder->validate($nodes, $this->partials);
 
@@ -66,6 +76,32 @@ final class PageProfile implements Profile
     public function pieces(): array
     {
         return [];
+    }
+
+    /**
+     * The first post piece in the design, at any depth, with where it is ("2.1").
+     *
+     * @param  list<mixed>  $nodes
+     * @return array{0: string, 1: string}|null
+     */
+    private static function postPiece(array $nodes, string $prefix): ?array
+    {
+        foreach (array_values($nodes) as $i => $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+            $at = $prefix === '' ? (string) ($i + 1) : "{$prefix}.".($i + 1);
+            $primitive = (string) ($node['primitive'] ?? '');
+            if (isset(PostProfile::PIECES[$primitive])) {
+                return [$at, $primitive];
+            }
+            $inside = self::postPiece((array) ($node['children'] ?? []), $at);
+            if ($inside !== null) {
+                return $inside;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -89,8 +125,11 @@ final class PageProfile implements Profile
         return '';
     }
 
-    /** The snapshot builder as the hosts' containers build it (the same parts, nothing host-specific). */
-    private static function builder(): PmlSnapshotBuilder
+    /**
+     * The snapshot builder as the hosts' containers build it (the same parts, nothing host-specific). Public so the post
+     * profile compiles a design exactly as a page is compiled (P1a-3a), never with a second copy of these parts.
+     */
+    public static function standardBuilder(): PmlSnapshotBuilder
     {
         $blocks = new BlockSchema();
 

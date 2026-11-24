@@ -30,9 +30,7 @@ final class PostProfileTest extends TestCase
             'a valid post' => [[$title, $words, ['primitive' => 'post_title'], ['comment' => 'Purpose: the opening']]],
             'empty' => [[]],
             'a component at the top' => [[$title, ['component' => 'hero', 'props' => []]]],
-            'a component inside a box (today: saved)' => [[['primitive' => 'box', 'children' => [['component' => 'hero', 'props' => []]]]]],
             'an unknown element' => [[$title, ['primitive' => 'zzz']]],
-            'an unknown element inside a box (today: saved)' => [[['primitive' => 'box', 'children' => [['primitive' => 'zzz']]]]],
             'a smuggled attribute' => [[['primitive' => 'button', 'props' => ['label' => 'Go', 'onclick' => 'x']]]],
             'not an element' => [['words']],
             'a comment with something on it' => [[['comment' => 'x', 'style' => []]]],
@@ -50,6 +48,61 @@ final class PostProfileTest extends TestCase
         if ($reason !== null) {
             $this->assertSame($reason, $found[0]['text']);
         }
+    }
+
+    /**
+     * P1a-3a (0.37.0): the gate this profile copied saved each of these, and the post failed later at its preview or
+     * publish bake. Each is now refused at save, with where it is.
+     *
+     * @return array<string, array{0: list<mixed>, 1: string, 2: string}>
+     */
+    public static function nested(): array
+    {
+        $box = fn (mixed ...$children) => ['primitive' => 'box', 'children' => $children];
+
+        return [
+            'a component inside a box' => [[$box(['component' => 'hero', 'props' => []])], 'component', '1.1'],
+            'an unknown element two levels down' => [[['primitive' => 'heading', 'props' => ['text' => 'x', 'level' => 2]], $box($box(['primitive' => 'zzz']))], 'invalid', '2.1.1'],
+            'a smuggled attribute inside a box' => [[$box(['primitive' => 'button', 'props' => ['label' => 'Go', 'onclick' => 'x']])], 'invalid', '1.1'],
+            'not an element inside a box' => [[$box('words')], 'invalid', '1.1'],
+        ];
+    }
+
+    #[DataProvider('nested')]
+    public function test_a_problem_inside_a_block_is_refused_where_it_is(array $nodes, string $code, string $at): void
+    {
+        $this->assertNull(self::todaysGate($nodes), 'the old gate saved this');
+
+        $found = (new PostProfile())->violations($nodes);
+
+        $this->assertSame([$code, $at], [$found[0]['code'] ?? null, $found[0]['at'] ?? null]);
+    }
+
+    /** @return array<string, array{0: list<mixed>, 1: string}> */
+    public static function wholeDesign(): array
+    {
+        $hi = [['primitive' => 'text', 'props' => ['value' => 'Hi']]];
+
+        return [
+            'a summary outside its details' => [[['primitive' => 'summary', 'children' => $hi]], '"summary" can only go directly inside a "details".'],
+            'an else with no if before it' => [[['primitive' => 'p', 'else' => true, 'children' => $hi]], 'An "else" must come straight after an element with "if" (or "else-if").'],
+        ];
+    }
+
+    /** Every element is sound on its own; these fail only when the design is compiled, as the bake does at publish. */
+    #[DataProvider('wholeDesign')]
+    public function test_what_only_the_whole_design_shows_is_refused_too(array $nodes, string $reason): void
+    {
+        $this->assertNull(self::todaysGate($nodes), 'the old gate saved this');
+
+        $this->assertSame([['code' => 'invalid', 'at' => '', 'text' => $reason]], (new PostProfile())->violations($nodes));
+    }
+
+    public function test_a_post_with_its_pieces_and_notes_inside_blocks_still_saves(): void
+    {
+        $opening = ['primitive' => 'box', 'children' => [['primitive' => 'post_title'], ['comment' => 'VERIFY: the date'], ['primitive' => 'post_dek']]];
+
+        $this->assertSame([], (new PostProfile())->violations([$opening, ['primitive' => 'post_cover']]));
     }
 
     public function test_it_finds_every_refused_block_and_says_where(): void
