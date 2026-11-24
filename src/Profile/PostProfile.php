@@ -6,15 +6,17 @@ use Shirahcan\Pml\Blocks\BlockSchema;
 use Shirahcan\Pml\InvalidPmlException;
 use Shirahcan\Pml\PmlParser;
 use Shirahcan\Pml\PrimitiveSchema;
+use Shirahcan\Pml\StandardLibrary;
 
 /**
  * A blog post as a profile: exactly the post save gate growth-service runs today (PostDocument::validated), and the
  * post's pieces, the `post_*` elements whose words are the POST's own details (its title, the line under it, its
  * cover), never text in the design.
  *
- * The gate: every block, at EVERY depth, is a PML element or a note, never a component (saved sections are not
- * available in posts yet), and passes PrimitiveSchema::validateNode; then the whole design compiles as its bake will
- * (P1a-3a, 0.37.0). Until 0.37.0 only the top-level blocks were checked, so a nested problem saved and failed later.
+ * The gate: every block, at EVERY depth, is a PML element, a note or a STANDARD section (a website's own saved sections
+ * are not available in posts), each element passing PrimitiveSchema::validateNode; then the whole design compiles as
+ * its bake will (P1a-3a, 0.37.0; standard sections allowed 0.38.0). Until 0.37.0 only the top-level blocks were checked,
+ * so a nested problem saved and failed later, and only a top-level section was refused.
  *
  * The pieces are ONE authority for what the Studio, the console and Porter used to keep three copies of (pml-ui's
  * PIECE_FIELDS and PIECE_TEXT_FIELD, GrowthPostConsoleController's DRAFTS and onlyPostPieces, PostConsole's DRAFTABLE).
@@ -108,18 +110,28 @@ final class PostProfile implements Profile
 
             return;
         }
+        /*
+         * ⚠ STANDARD SECTIONS YES, A SITE'S OWN SECTIONS NO (owner 2026-11-24, "Allow library sections"). A standard
+         * section (hero, process_timeline, stats...) rendered in posts all along, because the bake expands it; only the
+         * top-level check refused one, so a nested one was saved and shown. It is allowed at every depth now, and the
+         * whole-design compile below checks it exactly as the bake expands it. A website's own saved sections live on
+         * the website, not in the post's service, so a post cannot hold one.
+         */
         if (isset($node['component'])) {
-            $found[] = self::finding('component', $at, 'Saved sections (components) are not available in posts yet. Use the elements and the layout\'s own parts.');
+            $name = (string) $node['component'];
+            if (! in_array($name, self::standardSections(), true)) {
+                $found[] = self::finding('component', $at, "A post can hold the standard sections, but \"{$name}\" is not one of them: a website's own saved sections are not available in posts. Use the elements, a standard section or the layout's own parts.");
 
-            return;
-        }
+                return;
+            }
+        } else {
+            try {
+                $schema->validateNode($node, $path);
+            } catch (InvalidPmlException $e) {
+                $found[] = self::finding('invalid', $at, $e->getMessage());
 
-        try {
-            $schema->validateNode($node, $path);
-        } catch (InvalidPmlException $e) {
-            $found[] = self::finding('invalid', $at, $e->getMessage());
-
-            return;
+                return;
+            }
         }
 
         foreach (array_values((array) ($node['children'] ?? [])) as $j => $child) {
@@ -180,6 +192,14 @@ final class PostProfile implements Profile
         }
 
         return array_values(array_unique($fields));
+    }
+
+    /** @return list<string> the standard library's section names, the only components a post may hold */
+    private static function standardSections(): array
+    {
+        static $names = null;
+
+        return $names ??= (new StandardLibrary())->names();
     }
 
     /** @return array{code: string, at: string, text: string} */

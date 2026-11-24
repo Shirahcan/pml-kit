@@ -29,12 +29,11 @@ final class PostProfileTest extends TestCase
         return [
             'a valid post' => [[$title, $words, ['primitive' => 'post_title'], ['comment' => 'Purpose: the opening']]],
             'empty' => [[]],
-            'a component at the top' => [[$title, ['component' => 'hero', 'props' => []]]],
             'an unknown element' => [[$title, ['primitive' => 'zzz']]],
             'a smuggled attribute' => [[['primitive' => 'button', 'props' => ['label' => 'Go', 'onclick' => 'x']]]],
             'not an element' => [['words']],
             'a comment with something on it' => [[['comment' => 'x', 'style' => []]]],
-            'several problems' => [[['primitive' => 'zzz'], ['component' => 'hero'], 'words']],
+            'several problems' => [[['primitive' => 'zzz'], 'words']],
         ];
     }
 
@@ -61,7 +60,8 @@ final class PostProfileTest extends TestCase
         $box = fn (mixed ...$children) => ['primitive' => 'box', 'children' => $children];
 
         return [
-            'a component inside a box' => [[$box(['component' => 'hero', 'props' => []])], 'component', '1.1'],
+            'a website section inside a box' => [[$box(['component' => 'site_band', 'props' => []])], 'component', '1.1'],
+            'a problem inside a standard section' => [[$box(['component' => 'process_timeline', 'props' => ['heading' => 'Steps'], 'children' => [['primitive' => 'zzz']]])], 'invalid', '1.1.1'],
             'an unknown element two levels down' => [[['primitive' => 'heading', 'props' => ['text' => 'x', 'level' => 2]], $box($box(['primitive' => 'zzz']))], 'invalid', '2.1.1'],
             'a smuggled attribute inside a box' => [[$box(['primitive' => 'button', 'props' => ['label' => 'Go', 'onclick' => 'x']])], 'invalid', '1.1'],
             'not an element inside a box' => [[$box('words')], 'invalid', '1.1'],
@@ -98,6 +98,21 @@ final class PostProfileTest extends TestCase
         $this->assertSame([['code' => 'invalid', 'at' => '', 'text' => $reason]], (new PostProfile())->violations($nodes));
     }
 
+    /**
+     * Owner 2026-11-24, "Allow library sections": a standard section rendered in posts all along (the bake expands it),
+     * so a post may hold one at any depth. A website's own saved section is refused, top level or nested, by name.
+     */
+    public function test_a_standard_section_is_allowed_at_any_depth_and_a_sites_own_section_is_not(): void
+    {
+        $timeline = ['component' => 'process_timeline', 'props' => ['heading' => 'The steps'], 'children' => [['component' => 'step', 'props' => ['title' => 'Apply']]]];
+
+        $this->assertSame([], (new PostProfile())->violations([['component' => 'hero', 'props' => []], ['primitive' => 'box', 'children' => [$timeline]]]));
+
+        $found = (new PostProfile())->violations([['component' => 'site_band', 'props' => []]]);
+        $this->assertSame(['component', '1'], [$found[0]['code'], $found[0]['at']]);
+        $this->assertSame("A post can hold the standard sections, but \"site_band\" is not one of them: a website's own saved sections are not available in posts. Use the elements, a standard section or the layout's own parts.", $found[0]['text']);
+    }
+
     public function test_a_post_with_its_pieces_and_notes_inside_blocks_still_saves(): void
     {
         $opening = ['primitive' => 'box', 'children' => [['primitive' => 'post_title'], ['comment' => 'VERIFY: the date'], ['primitive' => 'post_dek']]];
@@ -107,7 +122,7 @@ final class PostProfileTest extends TestCase
 
     public function test_it_finds_every_refused_block_and_says_where(): void
     {
-        $found = (new PostProfile())->violations([['primitive' => 'zzz'], ['primitive' => 'heading', 'props' => ['text' => 'x', 'level' => 2]], ['component' => 'hero'], 'words']);
+        $found = (new PostProfile())->violations([['primitive' => 'zzz'], ['primitive' => 'heading', 'props' => ['text' => 'x', 'level' => 2]], ['component' => 'site_band'], 'words']);
 
         $this->assertSame([['invalid', '1'], ['component', '3'], ['invalid', '4']], array_map(fn ($f) => [$f['code'], $f['at']], $found));
     }
