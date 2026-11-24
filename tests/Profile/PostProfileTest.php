@@ -192,6 +192,20 @@ final class PostProfileTest extends TestCase
         $this->assertSame($ts, ElementsTypescript::render(), 'deterministic');
     }
 
+    public function test_the_studio_reads_each_standard_section_from_the_generated_module(): void
+    {
+        // P1a-3d: a stored standard section with no menu entry (a process timeline) gets its own settings in the Studio.
+        $ts = ElementsTypescript::render();
+        $sections = (new \Shirahcan\Pml\StandardLibrary())->sections();
+
+        $this->assertSame((new \Shirahcan\Pml\StandardLibrary())->names(), array_keys($sections));
+        $this->assertSame(['params' => ['heading'], 'has_slot' => true], $sections['process_timeline']);
+        $this->assertFalse($sections['stat']['has_slot'], 'a stat holds no elements of its own');
+        $this->assertStringContainsString("export const STANDARD_SECTIONS: Readonly<Record<string, PmlStandardSection>> = {", $ts);
+        $this->assertStringContainsString("  process_timeline: { params: ['heading'], has_slot: true },", $ts);
+        $this->assertStringContainsString("  step: { params: ['title'], has_slot: true },", $ts);
+    }
+
     public function test_a_comment_pinned_inside_the_opening_does_not_make_it_design_text(): void
     {
         $opening = ['primitive' => 'box', 'children' => [['comment' => 'Check the title', 'note' => ['id' => 'n1']], ['primitive' => 'post_date'], ['primitive' => 'post_author']]];

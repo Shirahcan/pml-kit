@@ -171,6 +171,28 @@ final class ElementsTypescript
             '/** What an ask aimed at a post\'s whole opening (two or more drafting pieces) drafts as well: the search details. */',
             'export const POST_OPENING_DRAFTS = '.self::literal(PostProfile::OPENING_DRAFTS, 0).' as const;',
             '',
+            ...self::sectionLines(),
+        ];
+    }
+
+    /**
+     * The standard library's sections ({@see StandardLibrary::sections()}, shared PML Studio P1a-3d): the Studio gives a
+     * stored one its own settings (its words, what it holds) from here, never from a copy of its own.
+     *
+     * @return list<string>
+     */
+    private static function sectionLines(): array
+    {
+        return [
+            '/** A standard section: the settings it takes, and whether it holds elements of its own. */',
+            'export interface PmlStandardSection {',
+            '  params: readonly string[];',
+            '  has_slot: boolean;',
+            '}',
+            '',
+            '/** The standard library\'s sections, by name: the sections every document may hold, a post included. */',
+            'export const STANDARD_SECTIONS: Readonly<Record<string, PmlStandardSection>> = '.self::literal((new StandardLibrary())->sections(), 0).';',
+            '',
         ];
     }
 

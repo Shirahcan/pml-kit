@@ -176,6 +176,19 @@ class StandardLibrary
     }
 
     /**
+     * Each section's settings and whether it holds elements of its own (a `<slot/>`), for the Studio's settings panel
+     * (exported to pml-ui by {@see ElementsTypescript}). Without it a stored standard section with no menu entry of its
+     * own (a process timeline, a team) was drawn but read as "a reusable component, edited under My components", with no
+     * way to change its heading in a post, which has no My components (shared PML Studio P1a-3d, 2026-11-24).
+     *
+     * @return array<string, array{params: list<string>, has_slot: bool}>
+     */
+    public function sections(): array
+    {
+        return array_map(fn (array $def) => ['params' => $def['params'], 'has_slot' => str_contains($def['pml'], '<slot')], self::COMPONENTS);
+    }
+
+    /**
      * Each component's declared param names, for the Porter prompt spec. Derived from the same
      * COMPONENTS the compiler expands, so the language Porter is taught can never drift from the
      * language the gate accepts.
