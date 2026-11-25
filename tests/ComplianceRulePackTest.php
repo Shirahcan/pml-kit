@@ -23,6 +23,32 @@ class ComplianceRulePackTest extends TestCase
         $this->assertSame([], $pack->scanText('A licensed consultant prepares and files your application. IRCC decides.')->violations());
     }
 
+    /**
+     * 2026-11-25: a visitor visa post's "If IRCC approves the application, the visitor visa is placed in your passport as
+     * an official document." was refused as a government tie. "Official" naming the government's own thing is true copy;
+     * "official" naming the speaker's standing is the claim.
+     */
+    public function test_official_is_a_claim_only_when_it_names_the_speakers_standing(): void
+    {
+        $pack = new ComplianceRulePack;
+
+        foreach ([
+            'If IRCC approves the application, the visitor visa is placed in your passport as an official document.',
+            "Check IRCC's official processing times before you apply.",
+            'The official Government of Canada fee list is linked below.',
+        ] as $true) {
+            $this->assertSame([], $pack->scanText($true)->violations(), $true);
+        }
+
+        foreach ([
+            'We are an official agent of IRCC.',
+            'Our firm is officially recognized by the Government of Canada.',
+            'The official immigration consultant of the Canadian government.',
+        ] as $claim) {
+            $this->assertNotSame([], $pack->scanText($claim)->violations(), $claim);
+        }
+    }
+
     public function test_an_unattested_testimonial_blocks_even_when_nested(): void
     {
         $blocks = [['type' => 'grid', 'config' => ['items' => [

@@ -25,9 +25,19 @@ class GovernmentAffiliationRule implements ComplianceRule
 {
     public const RULE = 'government_affiliation';
 
-    /** Words that assert a relationship WITH the body, rather than practice before it. */
+    /**
+     * Words that assert a relationship WITH the body, rather than practice before it.
+     *
+     * ⚠ Never the bare word "official": guides name the government's OWN things that way ("IRCC's official website",
+     * "the official processing times", "placed in your passport as an official document"), and refusing those refused
+     * true, sourced copy (2026-11-25, a visitor visa post). Only "official" naming the speaker's role or standing counts.
+     */
     private const AFFILIATION_WORDS = [
-        'official', 'partner', 'partnership', 'partnered', 'affiliated', 'affiliate',
+        'official agent', 'official representative', 'official provider', 'official consultant',
+        'official service provider', 'official immigration agent', 'official immigration consultant',
+        'officially recognized', 'officially recognised', 'officially approved', 'officially endorsed',
+        'officially licensed by', 'officially appointed',
+        'partner', 'partnership', 'partnered', 'affiliated', 'affiliate',
         'endorsed', 'endorsement', 'approved by', 'authorized by', 'authorised by',
         'accredited by', 'certified by', 'appointed by', 'on behalf of the government',
         'work with the government', 'working with the government', 'insider',
