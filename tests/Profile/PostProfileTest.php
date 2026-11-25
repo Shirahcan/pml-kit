@@ -185,7 +185,7 @@ final class PostProfileTest extends TestCase
     {
         $ts = ElementsTypescript::render();
 
-        $this->assertStringContainsString("export const PROFILE_KEYS = ['email', 'card', 'page', 'post'] as const;", $ts);
+        $this->assertStringContainsString("export const PROFILE_KEYS = ['email', 'card', 'page', 'post', 'component'] as const;", $ts);
         $this->assertStringContainsString("    post_title: { fields: ['title'], quickEdit: 'title', drafts: ['title', 'meta_title', 'focus_keyword'] },", $ts);
         $this->assertStringContainsString("  page: {},", $ts);
         $this->assertStringContainsString("export const POST_OPENING_DRAFTS = ['meta_description', 'secondary_keywords'] as const;", $ts);

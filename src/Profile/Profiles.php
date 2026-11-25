@@ -17,6 +17,7 @@ final class Profiles
         'card' => CardDocumentProfile::class,
         'page' => PageProfile::class,
         'post' => PostProfile::class,
+        'component' => ComponentProfile::class,
     ];
 
     /** The profile for a purpose. */
