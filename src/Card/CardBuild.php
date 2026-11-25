@@ -29,6 +29,8 @@ final class CardBuild
 
     public const UNREADABLE = 'The card that came back could not be read, so nothing changed.';
 
+    public const NO_CARD = 'The answer was only words, with no card before the reply line, so nothing changed. Write the card source first, then the reply line, then the words.';
+
     private readonly PmlParser $parser;
 
     private readonly PmlSerializer $serializer;
@@ -97,6 +99,12 @@ final class CardBuild
             } else {
                 $reply[] = $line;
             }
+        }
+
+        // ⚠ WORDS ARE NOT A CARD (2026-11-25, as the email Build): bare words would read as one paragraph and replace
+        // the card. A card is always markup, so words alone go back as a problem (the one repair), then change nothing.
+        if ($card !== '' && ! \Shirahcan\Pml\Build\PageReply::hasMarkup($card)) {
+            return ['nodes' => [], 'error' => self::NO_CARD, 'dropped' => [], 'reply' => implode(' ', $reply), 'notes' => $notes];
         }
 
         try {

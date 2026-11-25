@@ -118,6 +118,40 @@ I made it clearer.");
         $this->assertSame('A video cannot go in an email (mail clients cannot show it).', $result['reason'], "in the profile's own words");
     }
 
+    public function test_words_written_before_the_reply_line_with_the_email_after_it_keep_the_email(): void
+    {
+        // Measured 2026-11-25: "without changing anything, tell me what each part is for" came back as words, the reply
+        // line, then the email and two finding lines. The words became the whole newsletter.
+        $answer = "I left the email unchanged. The lead is the week's one big change.\n".EmailBuild::REPLY_MARK."\n"
+            .'<heading uid="hone01abc" part="lead" text="[One headline]" level="2"/>'."\n"
+            .'<callout uid="cone01abc"><button uid="bone01abc" label="Read the guide" href="https://example.org/guide"/></callout>'."\n"
+            ."Issue: the lead still holds the template's guidance.";
+        $result = (new EmailBuild)->run($this->design(), null, fn () => $answer);
+
+        $this->assertFalse($result['refused']);
+        $this->assertFalse($result['changed'], 'the email came back as it was');
+        $this->assertSame('[One headline]', $result['nodes'][1]['props']['text']);
+        $this->assertSame('Purpose: the one big change this week.', $result['nodes'][0]['comment'], 'the notes stay on their elements');
+        $this->assertStringStartsWith('I left the email unchanged.', $result['reply']);
+        $this->assertSame(["Issue: the lead still holds the template's guidance."], $result['notes']);
+    }
+
+    public function test_an_answer_of_only_words_never_replaces_the_email(): void
+    {
+        $asked = 0;
+        $result = (new EmailBuild)->run($this->design(), null, function (string $email, ?string $block, array $problems) use (&$asked) {
+            $asked++;
+
+            return "Each part is for one thing.\n".EmailBuild::REPLY_MARK."\nI changed nothing.";
+        });
+
+        $this->assertSame(2, $asked, 'one repair, never a loop');
+        $this->assertTrue($result['refused']);
+        $this->assertFalse($result['changed']);
+        $this->assertSame(EmailBuild::NO_EMAIL, $result['reason']);
+        $this->assertSame($this->design(), $result['nodes'], 'the email is exactly as it was');
+    }
+
     public function test_an_unreadable_or_empty_answer_is_repaired_once(): void
     {
         $answers = ['', '<heading uid="hone01abc" text="Fine now" level="2"/>'."\n".EmailBuild::REPLY_MARK."\nFixed."];

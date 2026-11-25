@@ -3,6 +3,7 @@
 namespace Shirahcan\Pml\Email;
 
 use Shirahcan\Pml\Build\DesignNotes;
+use Shirahcan\Pml\Build\PageReply;
 use Shirahcan\Pml\DocToMarkdown;
 use Shirahcan\Pml\MarkdownToDoc;
 use Shirahcan\Pml\PmlParser;
@@ -39,6 +40,9 @@ final class EmailBuild
     public const UNREADABLE = 'The email that came back could not be read, so nothing changed.';
 
     public const NOT_ONE_BLOCK = 'Return exactly one block: the one that was aimed at, rewritten.';
+
+    /** An answer that was only words: sent back once (the repair), then the reason nothing changed. Both read it. */
+    public const NO_EMAIL = 'The answer was only words, with no email before the reply line. Write the email source first (unchanged when the ask changes nothing), then the reply line, then the words.';
 
     private readonly PmlParser $parser;
 
@@ -108,9 +112,17 @@ final class EmailBuild
      */
     private function attempt(string $answer, array $current, ?array $path, ?array $aimed): array
     {
-        [$body, $after] = array_pad(explode(self::REPLY_MARK, str_replace("\r\n", "\n", $answer), 2), 2, '');
+        [$body, $after] = self::sourceAndAfter(str_replace("\r\n", "\n", $answer));
         $body = trim((string) preg_replace('/\A\s*```[a-z]*\s*|\s*```\s*\z/i', '', $body));
         [$reply, $notes] = self::replyOf($after);
+
+        // ⚠ WORDS ARE NOT AN EMAIL (2026-11-25). PML reads bare words as a paragraph, so an answer that is only the
+        // model's words passed the email profile and REPLACED the whole newsletter with one block of prose ("I left the
+        // email unchanged ...") while the notes lost their elements. Words alone go back as a problem (the one repair);
+        // the one exception is an email that is itself only words.
+        if ($body !== '' && ! PageReply::hasMarkup($body) && PageReply::hasMarkup($this->source($aimed !== null ? [$aimed] : $current))) {
+            return ['nodes' => null, 'node' => null, 'problems' => [self::NO_EMAIL], 'reply' => $reply, 'notes' => $notes];
+        }
 
         try {
             $parsed = $body === '' ? [] : array_values($this->parser->parse($body)['nodes'] ?? []);
@@ -142,6 +154,32 @@ final class EmailBuild
     }
 
     /** @return array{0: string, 1: list<string>} the reply sentences and the finding lines */
+    /**
+     * The email and what follows it. The contract is email, reply line, reply; when the words came FIRST (a question,
+     * answered before the email), the email is what follows the reply line from its first tag to its last tag line, and
+     * the words (with any finding lines after the email) are the reply. The same rule as the page Build's PageReply::split.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private static function sourceAndAfter(string $answer): array
+    {
+        [$before, $after] = array_pad(explode(self::REPLY_MARK, $answer, 2), 2, '');
+
+        if (PageReply::hasMarkup($before) || ! PageReply::hasMarkup($after)) {
+            return [$before, $after];
+        }
+
+        $lines = explode("\n", $after);
+        $tagLines = array_keys(array_filter($lines, fn (string $l) => preg_match(PageReply::TAG_LINE, $l) === 1 || preg_match('/>\s*$/', $l) === 1));
+        $first = (int) min($tagLines);
+        $last = (int) max($tagLines);
+
+        return [
+            implode("\n", array_slice($lines, $first, $last - $first + 1)),
+            trim($before."\n".implode("\n", array_slice($lines, 0, $first))."\n".implode("\n", array_slice($lines, $last + 1))),
+        ];
+    }
+
     private static function replyOf(string $after): array
     {
         $reply = [];

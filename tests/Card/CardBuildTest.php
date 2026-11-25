@@ -114,6 +114,21 @@ class CardBuildTest extends TestCase
         $this->assertSame(CardDesign::EMPTY, $out['reason']);
     }
 
+    public function test_an_answer_of_only_words_never_becomes_the_card(): void
+    {
+        $asked = 0;
+        $out = (new CardBuild)->run($this->current(), new CardFacts('Study'), new DefaultCardPolicy, function () use (&$asked) {
+            $asked++;
+
+            return "The card is about study permits.\n".CardBuild::REPLY_MARK."\nI changed nothing.";
+        });
+
+        $this->assertSame(2, $asked, 'one repair');
+        $this->assertTrue($out['refused']);
+        $this->assertSame(CardBuild::NO_CARD, $out['reason']);
+        $this->assertSame($this->current(), $out['nodes'], 'the card stays as it was');
+    }
+
     public function test_a_removed_pin_and_refused_words_are_reported_never_hidden(): void
     {
         $out = (new CardBuild)->run($this->current(), new CardFacts('Study'), $this->pinning(), fn () => '<heading text="Guaranteed approval" level="1"/>'."\n".CardBuild::REPLY_MARK."\nDone.");
