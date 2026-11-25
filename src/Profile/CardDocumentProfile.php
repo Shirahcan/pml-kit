@@ -29,4 +29,9 @@ final class CardDocumentProfile implements Profile
     {
         return [];
     }
+
+    public function spec(): ?string
+    {
+        return \Shirahcan\Pml\Card\CardSpec::describe();
+    }
 }

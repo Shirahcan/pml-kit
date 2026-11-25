@@ -144,6 +144,11 @@ final class PostProfile implements Profile
         return self::PIECES;
     }
 
+    public function spec(): ?string
+    {
+        return PostSpec::describe();
+    }
+
     /**
      * Whether a block shows only the post's details: a piece itself, or a block whose children are all such blocks (the
      * opening). An ask is never aimed at one unless it holds something Porter drafts ({@see draftsFor()}). A comment

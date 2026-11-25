@@ -29,4 +29,9 @@ final class EmailDocumentProfile implements Profile
     {
         return [];
     }
+
+    public function spec(): ?string
+    {
+        return \Shirahcan\Pml\Email\EmailSpec::describe();
+    }
 }

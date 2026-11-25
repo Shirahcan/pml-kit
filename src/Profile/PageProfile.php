@@ -78,6 +78,12 @@ final class PageProfile implements Profile
         return [];
     }
 
+    /** A website page is taught the host's own language alone (its site's sections are the host's to describe). */
+    public function spec(): ?string
+    {
+        return null;
+    }
+
     /**
      * The first post piece in the design, at any depth, with where it is ("2.1").
      *

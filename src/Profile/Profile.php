@@ -38,4 +38,12 @@ interface Profile
      * @return array<string, array{fields: list<string>, quickEdit?: string, drafts?: list<string>}>
      */
     public function pieces(): array;
+
+    /**
+     * What a Build writing this purpose is taught about it (shared PML Studio P5-1b), derived from the same data the
+     * profile's check reads, so the teaching cannot drift from what is accepted. An email's and a card's is their whole
+     * language; a post's is taught beside the host's page language (it names the pieces, the sections a post may hold,
+     * and that a website's own sections are not available). Null: the host's own language alone (a website page).
+     */
+    public function spec(): ?string;
 }
