@@ -94,6 +94,40 @@ final class PageBuildTest extends TestCase
         $this->assertSame([], $host->asks);
     }
 
+    public function test_a_note_the_answer_dropped_is_put_back_on_its_element(): void
+    {
+        // A template's Purpose note pinned to the heading; the answer rewrote the heading and left the note out (P5-1c,
+        // measured 2026-11-25 on a post's opening).
+        $source = '<box uid="box001ab"><comment for="head01ab" author="Template">Purpose: the title, from the post fields.</comment><heading uid="head01ab" text="Old title" level="2"/></box>';
+        $result = (new PageBuild)->finish($source, self::NEW, null, '{}', $this->host([]));
+
+        $this->assertFalse($result['unavailable']);
+        $this->assertTrue($result['changed']);
+        $this->assertSame(1, substr_count((string) $result['source'], 'Purpose: the title, from the post fields.'));
+        $this->assertMatchesRegularExpression('/<comment[^>]*for="head01ab"[^>]*>Purpose: the title[^<]*<\/comment>\s*<heading text="New title"[^>]*uid="head01ab"/', (string) $result['source']);
+    }
+
+    public function test_a_note_the_answer_kept_or_added_is_not_doubled(): void
+    {
+        $note = '<comment for="head01ab" author="Template">Purpose: the title.</comment>';
+        $source = '<box uid="box001ab">'.$note.'<heading uid="head01ab" text="Old title" level="2"/></box>';
+        $answer = '<box uid="box001ab">'.$note.'<comment for="head01ab" author="Porter">Check: the title names the year.</comment><heading uid="head01ab" text="New title" level="2"/></box>';
+
+        $result = (new PageBuild)->finish($source, $answer, null, '{}', $this->host([]));
+
+        $this->assertSame(1, substr_count((string) $result['source'], 'Purpose: the title.'));
+        $this->assertStringContainsString('Check: the title names the year.', (string) $result['source']);
+    }
+
+    public function test_a_note_whose_element_is_gone_goes_to_the_end_to_be_re_pinned(): void
+    {
+        $source = '<box uid="box001ab"><heading uid="head01ab" text="Old title" level="2"/><comment for="para01ab">Purpose: the intro.</comment><text uid="para01ab">Intro</text></box>';
+        $result = (new PageBuild)->finish($source, self::NEW, null, '{}', $this->host([]));
+
+        $this->assertStringContainsString('Purpose: the intro.', (string) $result['source']);
+        $this->assertStringEndsWith('</comment>', trim((string) $result['source']));
+    }
+
     public function test_a_stray_closing_tag_is_mended_with_no_model_and_said(): void
     {
         $host = $this->host([]);

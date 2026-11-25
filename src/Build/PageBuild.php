@@ -179,8 +179,10 @@ final class PageBuild
             ];
         }
 
-        // Every element leaves with a permanent id: kept ones as the model copied them, new ones fresh.
-        $nodes = PmlUids::ensure($attempt['nodes']);
+        // Every element leaves with a permanent id: kept ones as the model copied them, new ones fresh. A note the
+        // answer dropped is put back where it belongs (P5-1c: one Build on a post's opening lost the template's note
+        // for it); a note it kept or added stays as it is.
+        $nodes = PmlUids::ensure(DesignNotes::restoreMissing($before, $attempt['nodes']));
         $canonical = $this->serializer->serialize(['imports' => $attempt['imports'], 'nodes' => $nodes]);
 
         // Did anything change? A refusal ("I left the guarantee out") returns the page as it was, and the box must say

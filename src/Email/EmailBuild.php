@@ -2,6 +2,7 @@
 
 namespace Shirahcan\Pml\Email;
 
+use Shirahcan\Pml\Build\DesignNotes;
 use Shirahcan\Pml\DocToMarkdown;
 use Shirahcan\Pml\MarkdownToDoc;
 use Shirahcan\Pml\PmlParser;
@@ -178,7 +179,7 @@ final class EmailBuild
 
     private static function isNote(mixed $node): bool
     {
-        return is_array($node) && PmlParser::isCommentNode($node);
+        return DesignNotes::isNote($node);
     }
 
     /**
@@ -189,96 +190,19 @@ final class EmailBuild
      */
     public static function withoutNotes(array $nodes): array
     {
-        $kept = [];
-        foreach ($nodes as $node) {
-            if (! is_array($node) || self::isNote($node)) {
-                continue;
-            }
-            if (is_array($node['children'] ?? null)) {
-                $node['children'] = self::withoutNotes($node['children']);
-            }
-            $kept[] = $node;
-        }
-
-        return $kept;
+        return DesignNotes::without($nodes);
     }
 
-    /**
-     * Every note in the design with the uid of the element it belongs to: its pin (`note.for`), or else the element that
-     * followed it in its list; null when neither is known.
-     *
-     * @param  list<mixed>  $nodes
-     * @return list<array{note: array<string, mixed>, before: ?string}>
-     */
+    /** @return list<array{note: array<string, mixed>, before: ?string}> */
     private static function notesIn(array $nodes): array
     {
-        $found = [];
-        $list = array_values($nodes);
-        foreach ($list as $i => $node) {
-            if (self::isNote($node)) {
-                $for = is_array($node['note'] ?? null) && is_string($node['note']['for'] ?? null) ? $node['note']['for'] : null;
-                $found[] = ['note' => $node, 'before' => $for ?? self::nextUid($list, $i)];
-
-                continue;
-            }
-            if (is_array($node) && is_array($node['children'] ?? null)) {
-                $found = [...$found, ...self::notesIn($node['children'])];
-            }
-        }
-
-        return $found;
+        return DesignNotes::in($nodes);
     }
 
-    /** The uid of the first element after position $i in a list, skipping notes. */
-    private static function nextUid(array $list, int $i): ?string
-    {
-        for ($j = $i + 1; $j < count($list); $j++) {
-            if (is_array($list[$j]) && ! self::isNote($list[$j])) {
-                return is_string($list[$j]['uid'] ?? null) ? $list[$j]['uid'] : null;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * The notes put back: each before the element it belongs to, wherever that element now is; one whose element is
-     * gone at the end of the top level.
-     *
-     * @param  list<array<string, mixed>>  $nodes
-     * @param  list<array{note: array<string, mixed>, before: ?string}>  $notes
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private static function reattach(array $nodes, array $notes): array
     {
-        $orphans = [];
-        foreach ($notes as $entry) {
-            $placed = false;
-            $nodes = $entry['before'] === null ? $nodes : self::insertBefore($nodes, $entry['before'], $entry['note'], $placed);
-            if (! $placed) {
-                $orphans[] = $entry['note'];
-            }
-        }
-
-        return [...$nodes, ...$orphans];
-    }
-
-    /** @param list<array<string, mixed>> $nodes */
-    private static function insertBefore(array $nodes, string $uid, array $note, bool &$placed): array
-    {
-        $out = [];
-        foreach ($nodes as $node) {
-            if (! $placed && ($node['uid'] ?? null) === $uid) {
-                $out[] = $note;
-                $placed = true;
-            }
-            if (! $placed && is_array($node['children'] ?? null)) {
-                $node['children'] = self::insertBefore($node['children'], $uid, $note, $placed);
-            }
-            $out[] = $node;
-        }
-
-        return $out;
+        return DesignNotes::reattach($nodes, $notes);
     }
 
     /** @param list<int> $path */
