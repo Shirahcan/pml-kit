@@ -76,6 +76,43 @@ final class CardFrame
     }
 
     /**
+     * The design as it is STORED (shared PML Studio P2c, 2026-11-26): the card subset, plus its comments. A studio comment
+     * (`<comment for=...>`) or a source comment is a node with a `comment` key and no element; it never reaches the
+     * picture ({@see nodes()} drops it), but the person's design keeps it, so a pinned comment survives a save.
+     *
+     * @param  list<array<string, mixed>>  $nodes
+     * @return list<array<string, mixed>>
+     */
+    public static function design(array $nodes): array
+    {
+        $out = [];
+
+        foreach ($nodes as $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+
+            if (array_key_exists('comment', $node) && ! isset($node['primitive']) && ! isset($node['component'])) {
+                $out[] = $node;
+
+                continue;
+            }
+
+            if (! in_array($node['primitive'] ?? null, self::ELEMENTS, true)) {
+                continue;
+            }
+
+            if (isset($node['children']) && is_array($node['children'])) {
+                $node['children'] = self::design($node['children']);
+            }
+
+            $out[] = $node;
+        }
+
+        return $out;
+    }
+
+    /**
      * What a card holds that it may not, each as a sentence naming the element and where it is. Empty when the card
      * is clean. The validator a parser hook calls (Portify's PmlParser until E2f moves the parser here).
      *

@@ -35,9 +35,10 @@ final class CardDesign
         }
 
         $dropped = CardFrame::violations($nodes);
-        $kept = CardFrame::nodes($nodes);
+        // Stored with its comments (a pinned comment survives a save); the picture never draws them.
+        $kept = CardFrame::design($nodes);
 
-        if ($kept === []) {
+        if (CardFrame::nodes($kept) === []) {
             return ['nodes' => [], 'error' => self::EMPTY, 'dropped' => $dropped];
         }
 

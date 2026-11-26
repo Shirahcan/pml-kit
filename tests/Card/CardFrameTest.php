@@ -16,6 +16,29 @@ class CardFrameTest extends TestCase
         }
     }
 
+    /** Shared PML Studio P2c (2026-11-26): a pinned comment survives a save; the picture never draws it. */
+    public function test_a_stored_design_keeps_its_comments_and_the_picture_drops_them(): void
+    {
+        $nodes = [
+            ['comment' => 'Make the title shorter', 'note' => ['for' => 'h1', 'placement' => 'top-right']],
+            ['primitive' => 'box', 'props' => [], 'children' => [
+                ['primitive' => 'heading', 'uid' => 'h1', 'props' => ['text' => 'Hi']],
+                ['comment' => null],
+                ['primitive' => 'form', 'props' => []],
+            ]],
+        ];
+
+        $design = CardFrame::design($nodes);
+        $this->assertSame('Make the title shorter', $design[0]['comment']);
+        $this->assertCount(2, $design[1]['children'], 'the comment stays, the form goes');
+        $this->assertSame(['box'], array_column(CardFrame::nodes($design), 'primitive'), 'the picture has no comment');
+
+        $accepted = \Shirahcan\Pml\Card\CardDesign::accept($nodes);
+        $this->assertNull($accepted['error']);
+        $this->assertSame('Make the title shorter', $accepted['nodes'][0]['comment']);
+        $this->assertSame(\Shirahcan\Pml\Card\CardDesign::EMPTY, \Shirahcan\Pml\Card\CardDesign::accept([['comment' => 'only a note']])['error'], 'comments alone are not a card');
+    }
+
     public function test_a_card_drops_and_names_what_it_cannot_hold(): void
     {
         $nodes = [
